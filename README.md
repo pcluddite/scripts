@@ -1,2 +1,2 @@
-# common_defs
-Common functions for bash scripts
+# scripts
+Personal bash scripts
