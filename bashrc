@@ -15,12 +15,15 @@ export PS1='\n\[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32
 export EDITOR=vim
 
 if command -v 'trash' &> /dev/null; then
-    alias rm='trash'
+    alias rm='trash -i'
 else
     alias rm='rm -i'
 fi
 
 alias cp='cp -i'
 alias mv='mv -i'
+
+alias status='sudo systemctl status'
+alias ustatus='systemctl --user status'
 alias screen='tmux attach -t'
 alias hex="printf '0x%x\\n'"
