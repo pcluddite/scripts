@@ -1,9 +1,8 @@
 #!/bin/bash
 
 exportif() {
-    local ARG="${@}"
-    local VARNAME="${ARG%%=*}"
-    local VARVALUE="${ARG#*=}"
+    local VARNAME="${1%%=*}"
+    local VARVALUE="${1#*=}"
     if [[ ! -v "$VARNAME" ]]; then
         export "${VARNAME}"="${VARVALUE}"
     fi
@@ -11,7 +10,7 @@ exportif() {
 }
 
 exportif SCRIPT_DIR=$(dirname $(readlink -f $0))
-exportif LIB_DIR="${TPB_SCRIPT_DIR}/lib"
+exportif LIB_DIR="$(dirname "${BASH_SOURCE[0]}")/lib"
 
 exportif EXIT_ERROR=1
 exportif EXIT_SUCCESS=0
