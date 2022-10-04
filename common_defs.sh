@@ -1,10 +1,20 @@
 #!/bin/bash
 
-SCRIPT_DIR=$(dirname $(readlink -f $0))
-LIB_DIR="${SCRIPT_DIR}/lib"
+exportif() {
+    local ARG="${@}"
+    local VARNAME="${ARG%%=*}"
+    local VARVALUE="${ARG#*=}"
+    if [[ ! -v "$VARNAME" ]]; then
+        export "${VARNAME}"="${VARVALUE}"
+    fi
+    export TPB_$VARNAME=$VARVALUE
+}
 
-EXIT_ERROR=1
-EXIT_SUCCESS=0
+exportif SCRIPT_DIR=$(dirname $(readlink -f $0))
+exportif LIB_DIR="${TPB_SCRIPT_DIR}/lib"
+
+exportif EXIT_ERROR=1
+exportif EXIT_SUCCESS=0
 
 write_error() {
     printf '%s: %s\n' $(basename "$0") "$1" 1>&2
@@ -12,7 +22,7 @@ write_error() {
 
 exit_error() {
     local MESSAGE=''
-    local EXIT_CODE="$EXIT_ERROR"
+    local EXIT_CODE="$TPB_EXIT_ERROR"
     while [[ "$#" -gt 0 ]]; do
         case $1 in
             -c=*)
