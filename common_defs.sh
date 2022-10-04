@@ -3,13 +3,16 @@
 SCRIPT_DIR=$(dirname $(readlink -f $0))
 LIB_DIR="${SCRIPT_DIR}/lib"
 
+EXIT_ERROR=1
+EXIT_SUCCESS=0
+
 write_error() {
     printf '%s: %s\n' $(basename "$0") "$1" 1>&2
 }
 
 exit_error() {
-    MESSAGE=''
-    EXIT_CODE=1
+    local MESSAGE=''
+    local EXIT_CODE="$EXIT_ERROR"
     while [[ "$#" -gt 0 ]]; do
         case $1 in
             -c=*)
