@@ -73,7 +73,7 @@ wineico() {
     if [[ $? -eq 0 ]]; then
         printf '%s\n' "$BEST_NAME"
     else
-        return 1
+        return $EXIT_ERROR
     fi
 }
 

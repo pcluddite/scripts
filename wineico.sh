@@ -49,7 +49,7 @@ extract_png() {
     done
 
     if [[ $IS_ICON != 'Y' ]]; then
-        return 0
+        return $EXIT_ERROR
     fi
 
     printf -v ICO_DEPTH "%02X" "$ICO_DEPTH"
@@ -76,14 +76,14 @@ extract_png() {
     fi
     if [[ "$DRY_SW" != 'Y' ]]; then
         if ! icotool -x $ARG_LIST --output="/tmp" "$ICO_FILE"; then
-            return 1
+            return $EXIT_ERROR
         fi
         TMP_PNG="$(basename "$ICO_FILE" .ico)_${ICO_INDEX}_${ICO_HEIGHT}x${ICO_WIDTH}x$(( 0x$ICO_DEPTH )).png"
         if mv "/tmp/$TMP_PNG" "$PNG_PATH/$PNG_NAME"; then
             printf 'rm %q\n' "$PNG_PATH/$PNG_NAME" >> "$TMP_RM_SCRIPT"
         fi
     fi
-    return 0
+    return $EXIT_SUCCESS
 }
 
 extract_ico() {
@@ -92,7 +92,7 @@ extract_ico() {
     icoextract -n $IDX "$EXE_PATH" "$TMP_FILE" &> /dev/null
     if [[ $? -ne 0 ]]; then
         rm "$TMP_FILE" &> /dev/null
-        return 1
+        return $EXIT_ERROR
     fi
     printf '\n# Icon(%d):\n' "$IDX" >> "$TMP_RM_SCRIPT"
     while read ICON_ARG_LINE; do
@@ -103,7 +103,7 @@ extract_ico() {
         fi
     done < <(icotool --list "$TMP_FILE")
     rm "$TMP_FILE" &> /dev/null
-    return 0
+    return $EXIT_SUCCESS
 }
 
 EXE_PATH=''
