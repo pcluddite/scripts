@@ -4,17 +4,28 @@
 
 #include "vector.h"
 
-typedef struct {
-    char* ptr;
-    char* defaultValue;
-    bool equals;
-    bool positional;
-} sh_arg;
+typedef enum e_argopts {
+    OPT_NONE       = 0x00,
+    OPT_REQUIRED   = 0x01,
+    OPT_POSITIONAL = 0x02,
+    OPT_EQUALS     = 0x04,
+} argopts;
+
+typedef struct s_shell_arg {
+    char* name;
+    char* value;
+    argopts options;
+} shell_arg;
 
 static void exit_error(const char* msg)
 {
     fprintf(stderr, "vargs: %s\n", msg);
     exit(EXIT_FAILURE);
+}
+
+void read_arg(shell_arg* dest)
+{
+    
 }
 
 int main(int argc, char* argv[]) {

@@ -29,6 +29,25 @@ vector* list_init(vector* v, const void* src, size_t type_size, size_t list_size
     return v;
 }
 
+static vector* list_ensure_capcity(vector* v, size_t type_size, size_t num_elements)
+{
+    size_t new_size = v->size + num_elements;
+    if (v->capacity < new_size) {
+        do {
+            v->capacity *= 2;
+        }
+        while(v->capacity < new_size);
+        v->ptr = erealloc(v->ptr, new_size * type_size);
+        v->size = new_size;
+    }
+    return v;
+}
+
+vector* list_add(vector* v, const void* ptr, size_t type_size)
+{
+    
+}
+
 void free_list(vector* v)
 {
     efree(v->ptr);
