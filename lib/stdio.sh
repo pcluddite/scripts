@@ -1,19 +1,23 @@
 #!/bin/bash
 
+if [[ "${TPB_COMMON_STDIO}" = 'defined' ]]; then
+    return ${TPB_EXIT_SUCCESS}
+fi
+
 prompt() {
     local PROMPT=''
     local DEFAULT_VALUE=''
     while [[ "$#" -gt 0 ]]; do
         case $1 in
-            -p=*)
+            -p=*|--prompt=*)
                 PROMPT="${1#*=}"
                 ;;
-            -p)
+            -p|--prompt)
                 if [[ "$#" -gt 1 && "${2:0:1}" != '-' ]]; then
                     PROMPT="$2"
                     shift
                 else
-                    exit_error 'no value was specified for -p'
+                    exit_error "no value was specified for $1"
                 fi
                 ;;
             -d=*|--default=*)
@@ -24,7 +28,7 @@ prompt() {
                     DEFAULT_VALUE="$2"
                     shift
                 else
-                    exit_error 'no value was specified for -d'
+                    exit_error "no value was specified for $1"
                 fi
                 ;;
             -*)
@@ -42,7 +46,7 @@ prompt() {
     done
     local INPUT=''
     if [[ "$DEFAULT_VALUE" != '' ]]; then
-        PROMPT="$PROMPT (${DEFAULT_VALUE}) "
+        PROMPT="$PROMPT [${DEFAULT_VALUE}] "
     fi
     read -p "$PROMPT" INPUT
     if [[ "$INPUT" = '' ]]; then
@@ -52,7 +56,25 @@ prompt() {
     fi
 }
 
+prompt_yesno() {
+    local INPUT=$(prompt "${@}")
+    local YN=''
+    while [[ "${YN}" = '' ]]; do
+        if [[ "${INPUT}" = 'y' ]] || [[ "${INPUT}" = 'yes' ]]; then
+            YN='Y'
+        elif [[ "${INPUT}" = 'n' ]] || [[ "${INPUT}" = 'no' ]]; then
+            YN='N'
+        else
+            printf "Type 'yes' or 'no'\n" 1>&2
+            INPUT=$(prompt "${@}")
+        fi
+    done
+    printf '%s' "${YN}"
+}
+
 noop() {
     local ARGS="${@}"
     printf '### NO-OP ### %s\n' "$ARGS"
 }
+
+exportif COMMON_STDIO='defined'
