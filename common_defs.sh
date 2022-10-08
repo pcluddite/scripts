@@ -85,6 +85,13 @@ assert_arg_num() {
     return $EXIT_SUCCESS
 }
 
+assert_root() {
+    assert_arg_num 0 $@
+    if [[ $(id -u) -ne 0 ]]; then
+        exit_error 'This script must be run as root.'
+    fi
+}
+
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         STDIO)
