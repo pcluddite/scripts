@@ -6,10 +6,8 @@ fi
 
 vargs_parse_expected() {
     assert_arg_num -1 "$@"
+
     local FORMATTED="$1"
-
-    # [test:t]=poop
-
     local DEFAULT="${FORMATTED#*=}"
     local NAME="${FORMATTED%%=*}"
     local OPTIONAL='N'
@@ -24,11 +22,23 @@ vargs_parse_expected() {
     fi
 
     local SHORT_NAME="${NAME#*:}"
+    local POSITION=0
     if [[ "${SHORT_NAME}" != '' ]]; then
         NAME="${NAME%%:*}"
+        POSITION="${SHORT_NAME#*:}"
+        if [[ "${POSITION}" != '' ]]; then
+            if [[ $(expr "$POSITION" + 0 2> /dev/null) != "$POSITION" ]]; then
+                write_error "unexpected token '${POSITION}' in \"${FORMATTED}\""
+                write_error 'position must be an integer'
+                return $EXIT_FAILURE
+            fi
+            SHORT_NAME="${NAME%%:*}"
+        else
+            POSITION=0
+        fi
     fi
 
-    printf '%s\n%c\n%c\n%s\n' "${NAME}" "${SHORT_NAME}" "${OPTIONAL}" "${DEFAULT}"
+    printf '%s\n%c\n%d\n%c\n%s\n' "${NAME}" "${SHORT_NAME}" "${POSITION}" "${OPTIONAL}" "${DEFAULT}"
 }
 
 vargs() {
@@ -87,3 +97,6 @@ vargs() {
 }
 
 export COMMON_VARGS='Y'
+
+. "${COMMONDEFS}"
+vargs_parse_expected "[test:t:0]='hello how are you'"
