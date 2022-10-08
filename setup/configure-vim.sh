@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -o errexit
+
 if [[ ! -v "${COMMONDEFS}" ]]; then
     COMMONDEFS='../common_defs.sh'
 fi
