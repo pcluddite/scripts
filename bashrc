@@ -18,6 +18,8 @@ tmux_screen_exists() {
 export PS1='\n\[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\n\$'
 export EDITOR=vim
 
+export COMMONDEFS="${HOME}/scripts/common_defs.sh"
+
 if command -v 'trash' &> /dev/null; then
     alias rm='trash -i'
 else
