@@ -13,7 +13,7 @@ export EXIT_FAILURE=1
 export EXIT_SUCCESS=0
 
 write_error() {
-    printf '%s: %s\n' $(basename "$0") "$@" 1>&2
+    printf '%s: %s\n' $(basename "$0") "$*" 1>&2
 }
 
 return_error() {
