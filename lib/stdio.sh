@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [[ "${TPB_COMMON_STDIO}" = 'defined' ]]; then
-    return ${TPB_EXIT_SUCCESS}
+if [[ "${COMMON_STDIO}" = 'Y' ]]; then
+    return $EXIT_SUCCESS
 fi
 
 prompt() {
@@ -77,4 +77,4 @@ noop() {
     printf '### NO-OP ### %s\n' "$ARGS"
 }
 
-exportif COMMON_STDIO='defined'
+export COMMON_STDIO='Y'

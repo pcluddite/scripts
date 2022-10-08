@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [[ "$COMMON_FILEIO" = 'Y' ]]; then
+    return $EXIT_SUCCESS
+fi
+
 is_defined() {
     command -v "$1" &> /dev/null
 }
@@ -18,3 +22,5 @@ next_no_exist() {
         printf '%s\n' "$1"
     fi
 }
+
+export COMMON_FILEIO='Y'

@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [[ "${COMMON_STRING}" = 'Y' ]]; then
+    return ${EXIT_SUCCESS}
+fi
+
 lower() {
     echo "$1" | tr '[:upper:]' '[:lower:]'
 }
@@ -20,3 +24,5 @@ is_integer() {
     REGEX='^[0-9]+$'
     [[ "$1" =~ $REGEX ]]
 }
+
+export COMMON_STRING='Y'
