@@ -1,38 +1,30 @@
 #!/bin/bash
 
-exportif() {
-    local VARNAME="${1%%=*}"
-    local VARVALUE="${1#*=}"
-    if [[ ! -v "$VARNAME" ]]; then
-        export "${VARNAME}"="${VARVALUE}"
-    fi
-    export TPB_$VARNAME=$VARVALUE
-}
-
 if [[ ! -v "${COMMONDEFS}" ]]; then
     # define COMMONDEFS if not already defined
     export COMMONDEFS=$(readlink -f "${BASH_SOURCE[0]}")
 fi
 
-exportif SCRIPT_DIR=$(dirname $(readlink -f $0))
-exportif LIB_DIR="$(dirname "${COMMONDEFS}")/lib"
+export SCRIPT_DIR=$(dirname $(readlink -f $0))
+export LIB_DIR="$(dirname "${COMMONDEFS}")/lib"
 
-exportif EXIT_ERROR=1
-exportif EXIT_SUCCESS=0
+export EXIT_ERROR=1
+export EXIT_FAILURE=1
+export EXIT_SUCCESS=0
 
 write_error() {
-    printf '%s: %s\n' $(basename "$0") "$1" 1>&2
+    printf '%s: %s\n' $(basename "$0") "$@" 1>&2
 }
 
-exit_error() {
+return_error() {
     local MESSAGE=''
-    local EXIT_CODE="$TPB_EXIT_ERROR"
+    local EXIT_CODE=$EXIT_FAILURE
     while [[ "$#" -gt 0 ]]; do
         case $1 in
-            -c=*)
+            -c=*|--exitcode=)
                 EXIT_CODE="${1#*=}"
                 ;;
-            -c)
+            -c|--exitcode)
                 if [[ "$#" -gt 1 && "${2:0:1}" != '-' ]]; then
                     EXIT_CODE="$2"
                     shift
@@ -40,6 +32,7 @@ exit_error() {
                     write_error 'no value was specified for -c'
                 fi
                 ;;
+            
             -*)
                 write_error "unrecognized option '$1'"
                 ;;
@@ -47,7 +40,7 @@ exit_error() {
                 if [[ "$MESSAGE" = '' ]]; then
                     MESSAGE="$1"
                 else
-                    write_error "Too many arguments '$1'"
+                    MESSAGE="${MESSAGE} $1"
                 fi
                 ;;
         esac
@@ -56,7 +49,12 @@ exit_error() {
     if [[ "$MESSAGE" != '' ]]; then
         write_error "$MESSAGE"
     fi
-    exit "$EXIT_CODE"
+    return "$EXIT_CODE"
+}
+
+exit_error() {
+    return_error $@
+    exit $?
 }
 
 assert_arg_num() {
@@ -71,9 +69,9 @@ assert_arg_num() {
         else
             write_error "expected ${NUM} arguments"
         fi
-        return 1
+        return $EXIT_FAILURE
     fi
-    return 0
+    return $EXIT_SUCCESS
 }
 
 while [[ "$#" -gt 0 ]]; do
@@ -91,7 +89,7 @@ while [[ "$#" -gt 0 ]]; do
             set -o errexit
             ;;
         *)
-            exit_error "unrecognized option '$1'"
+            return_error "unrecognized option '$1'"
             ;;
     esac
     shift
