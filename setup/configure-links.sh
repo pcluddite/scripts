@@ -1,12 +1,10 @@
 #!/bin/sh
 
-set -o errexit
-
 if [[ ! -v "${COMMONDEFS}" ]]; then
-    COMMONDEFS='../common_defs.sh'
+    COMMONDEFS="$(dirname "$0")/../common_defs.sh"
 fi
 
-if ! . "${COMMONDEFS}" STDIO; then
+if ! . "${COMMONDEFS}" STDIO ERREXIT; then
     exit 1
 fi
 
