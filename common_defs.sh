@@ -9,8 +9,13 @@ exportif() {
     export TPB_$VARNAME=$VARVALUE
 }
 
+if [[ ! -v "${COMMONDEFS}" ]]; then
+    # define COMMONDEFS if not already defined
+    export COMMONDEFS=$(readlink -f "${BASH_SOURCE[0]}")
+fi
+
 exportif SCRIPT_DIR=$(dirname $(readlink -f $0))
-exportif LIB_DIR="$(dirname "${BASH_SOURCE[0]}")/lib"
+exportif LIB_DIR="$(dirname "${COMMONDEFS}")/lib"
 
 exportif EXIT_ERROR=1
 exportif EXIT_SUCCESS=0
@@ -54,6 +59,23 @@ exit_error() {
     exit "$EXIT_CODE"
 }
 
+assert_arg_num() {
+    local NUM=0
+    if [[ $# -gt 0 ]]; then
+        NUM="$1"
+        shift
+    fi
+    if [[ $NUM -gt $# ]]; then
+        if [[ $NUM -eq 1 ]]; then
+            write_error 'expected 1 argument'
+        else
+            write_error "expected ${NUM} arguments"
+        fi
+        return 1
+    fi
+    return 0
+}
+
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         STDIO)
@@ -64,6 +86,9 @@ while [[ "$#" -gt 0 ]]; do
             ;;
         FILEIO)
             . "${LIB_DIR}/fileio.sh"
+            ;;
+        ERREXIT|EXITERR)
+            set -o errexit
             ;;
         *)
             exit_error "unrecognized option '$1'"
