@@ -63,7 +63,18 @@ assert_arg_num() {
         NUM="$1"
         shift
     fi
-    if [[ $NUM -gt $# ]]; then
+    if [[ $NUM -le 0 ]]; then
+        NUM=$(( -$NUM ))
+        if [[ $# -gt $NUM ]]; then
+            if [[ $NUM -eq 0 ]]; then
+                write_error 'no arguments expected'
+            else
+                write_error "only $NUM argument was expected"
+            fi
+            return $EXIT_FAILURE
+        fi
+    fi
+    if [[ $# -lt $NUM ]]; then
         if [[ $NUM -eq 1 ]]; then
             write_error 'expected 1 argument'
         else
