@@ -46,13 +46,35 @@ vargs_parse_expected() {
     printf '%s %s %d %c %s' "${NAME}" "${SHORT_NAME}" "${POSITION}" "${OPTIONAL}" "${DEFAULT}"
 }
 
+varg_contract_name() {
+    printf '%s' "$1"
+}
+
+varg_contract_shortname() {
+    printf '%s' "$2"
+}
+
+varg_contract_position() {
+    printf '%d' "$3"
+}
+
+varg_contract_is_optional() {
+    [[ "$4" = 'Y' ]]
+}
+
+varg_contract_default() {
+    printf '%s' "$5"
+}
+
 vargs() {
     #if ! assert_arg_num -2 $@; then
     #    return 1
     #fi
     local EXPECTED=
     while [[ $# -gt 0 && "$1" != '--' ]]; do
-        printf -v EXPECTED '%s%s\n' "${EXPECTED}" "$(vargs_parse_expected "$1")"
+        local CONTRACT=$(vargs_parse_expected "$1")
+        [[ $? -eq 0 ]] || return $EXIT_FAILURE
+        printf -v EXPECTED '%s%s\n' "${EXPECTED}" "${CONTRACT}"
         shift
     done
     
@@ -64,33 +86,37 @@ vargs() {
     shift
 
     local POSITIONAL=()
-    while [[ $# -gt 0 && "$1" != '--' ]]; do
+    while [[ $# -gt 0 ]]; do
         case "$1" in
             --)
+                shift
                 break
                 ;;
             --*|-*)
                 local ARG_NAME="${1%%=*}"
                 local ARG_VALUE=
                 if [[ "$ARG_NAME" = "$1" ]]; then
-                    if [[ "$2" != '' ]] && [[ "$2" != '--' ]]; then
+                    if [[ "$2" = '--' ]]; then
+                        continue
+                    elif [[ "$2" != '' ]]; then
                         ARG_VALUE="$2"
                     fi
+                    shift
                 else
                     ARG_VALUE="${1#*=}"
                 fi
                 while read LINE; do
-                    CONTRACT=($LINE)
-                    local VARG_NAME="VARG_${CONTRACT[0]}"
+                    CONTRACT="$LINE"
+                    local VARG_NAME="VARG_$(varg_contract_name "${CONTRACT}")"
                     local VARG_STATE="VARG_STATE_${VARG_NAME}"
-                    if [[ "${ARG_NAME}" = "--${CONTRACT[0]}" ]] || \
-                       [[ "${CONTRACT[1]}" != '' && "${ARG_NAME}" = "-${CONTRACT[1]}" ]]; then
+                    if [[ "${ARG_NAME}" = "--$(varg_contract_name "${CONTRACT}")" ]] || \
+                       [[ "$(varg_contract_shortname "${CONTRACT}")" != '' && "${ARG_NAME}" = "-$(varg_contract_shortname "${CONTRACT}")" ]]; then
                         if [[ "${!VARG_STATE}" != '' ]]; then
                             write_error "option '${ARG_NAME}' has already been set to '${!VARG_NAME}'"
-                            return 1
+                            return $EXIT_FAILURE
                         fi
                         if [[ "${ARG_VALUE}" = '' ]]; then
-                            export $VARG_NAME=${CONTRACT[4]}
+                            export $VARG_NAME=$(varg_contract_default "${CONTRACT}")
                             export $VARG_STATE='default'
                         else
                             export $VARG_NAME="${ARG_VALUE}"
@@ -105,11 +131,18 @@ vargs() {
         esac
         shift
     done
-    exit 0
+    
+    while [[ $# -gt 0 ]]; do
+        POSITIONAL+=("$1")
+        shift
+    done
+
+    set -- ${POSITIONAL[@]}
+    echo "$*"
 }
 
 export COMMON_VARGS='Y'
 
 . "${COMMONDEFS}"
-vargs "[test,t]='hello how are you'" 'poop' -- --test 'hi how are you' --poop="i'm good" 'what about you?' --poop='hi'
+vargs "[test,t]='hello how are you'" 'poop' -- --test 'hi how are you' potty -- fartman --poop="i'm good" 'what about you?'
 echo ${VARG_poop} 
