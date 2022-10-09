@@ -27,7 +27,7 @@ for (( i=0; i < "${#LINKS[@]}"; ++i )); do
 
     if [[ -d "${LINK_FILE}" ]]; then
         write_error 'directories are currently unsupported.'
-        YN='Y'
+        YN='N'
     fi
 
     if [[ "${YN}" = 'Y' ]]; then
