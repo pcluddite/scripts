@@ -12,91 +12,104 @@ vargs_parse_expected() {
     local NAME="${FORMATTED%%=*}"
     local OPTIONAL='N'
 
-    if [[ "${NAME:0:1}" = '[' ]]; then
+    if [[ "${NAME}" = '['* ]]; then
         NAME="${NAME:1}"
         OPTIONAL='Y'
     fi
-    if [[ "${NAME:$(( ${#NAME} - 1)):1}" = ']' ]]; then
+    if [[ "${NAME}" = *']' ]]; then
         NAME="${NAME%%]*}"
         OPTIONAL='Y'
     fi
 
-    local SHORT_NAME="${NAME#*:}"
     local POSITION=0
-    if [[ "${SHORT_NAME}" != '' ]]; then
-        NAME="${NAME%%:*}"
-        POSITION="${SHORT_NAME#*:}"
-        if [[ "${POSITION}" != '' ]]; then
-            if [[ $(expr "$POSITION" + 0 2> /dev/null) != "$POSITION" ]]; then
-                write_error "unexpected token '${POSITION}' in \"${FORMATTED}\""
-                write_error 'position must be an integer'
-                return $EXIT_FAILURE
-            fi
-            SHORT_NAME="${NAME%%:*}"
-        else
-            POSITION=0
+    local SHORT_NAME=''
+    if [[ "${NAME}" = *'#'* ]]; then
+        POSITION="${NAME#*#}"
+        NAME="${NAME%%#*}"
+        if [[ "${NAME}" = *':'* ]]; then
+            SHORT_NAME="${NAME#*,}"
+            NAME="${NAME%%,*}"
+        elif [[ "${POSITION}" = *','* ]]; then
+            SHORT_NAME="${POSITION#*,}"
+            POSITION="${POSITION%%,*}"
         fi
+        if [[ $(expr "$POSITION" + 0 2> /dev/null) != "$POSITION" ]]; then
+            write_error "unexpected token '${POSITION}' in \"${FORMATTED}\""
+            write_error 'position must be an integer'
+            return $EXIT_FAILURE
+        fi
+    elif [[ "${NAME}" = *','* ]]; then
+        SHORT_NAME="${NAME#*,}"
+        NAME="${NAME%%,*}"
     fi
 
-    printf '%s\n%c\n%d\n%c\n%s\n' "${NAME}" "${SHORT_NAME}" "${POSITION}" "${OPTIONAL}" "${DEFAULT}"
+    printf '%s %s %d %c %s' "${NAME}" "${SHORT_NAME}" "${POSITION}" "${OPTIONAL}" "${DEFAULT}"
 }
 
 vargs() {
-    local EXPECTED=()
-    local INPUT=()
-
-    assert_arg_num 2 $@
-
-    while [[ "$#" -gt 0 ]]; do
-        case $1 in
-            --expected=*)
-                EXPECTED=("${1#*=}")
-                ;;
-            --expected)
-                if [[ "$#" -gt 1 && "${2:0:1}" != '-' ]]; then
-                    EXPECTED=($2)
-                    shift
-                else
-                    write_error "no value was specified for '$1'"
-                    return $EXIT_FAILURE
-                fi
-                ;;
-            --args=*)
-                INPUT=("${1#*=}")
-                ;;
-            --args)
-                if [[ "$#" -gt 1 && "${2:0:1}" != '-' ]]; then
-                    INPUT=($2)
-                    shift
-                else
-                    write_error "no value was specified for '$1'"
-                    return $EXIT_FAILURE
-                fi
-                ;;
-            -*)
-                write_error "unrecognized option '$1'"
-                return $EXIT_FAILURE
-                ;;
-            *)
-                if [[ ${#EXPECTED[@]} -eq 0 ]]; then
-                    EXPECTED=($1)
-                elif [[ ${#INPUT[@]} -eq 0 ]]; then
-                    INPUT=($1)
-                else
-                    write_error 'too many arguments'
-                    return $EXIT_FAILURE
-                fi
-                ;;
-        esac
+    #if ! assert_arg_num -2 $@; then
+    #    return 1
+    #fi
+    local EXPECTED=
+    while [[ $# -gt 0 && "$1" != '--' ]]; do
+        printf -v EXPECTED '%s%s\n' "${EXPECTED}" "$(vargs_parse_expected "$1")"
         shift
     done
+    
     if [[ ${#EXPECTED[@]} -eq 0 ]]; then
         write_error 'there must be at least 1 expected argument'
         return $EXIT_FAILURE
     fi
+
+    shift
+
+    local POSITIONAL=()
+    while [[ $# -gt 0 && "$1" != '--' ]]; do
+        case "$1" in
+            --)
+                break
+                ;;
+            --*|-*)
+                local ARG_NAME="${1%%=*}"
+                local ARG_VALUE=
+                if [[ "$ARG_NAME" = "$1" ]]; then
+                    if [[ "$2" != '' ]] && [[ "$2" != '--' ]]; then
+                        ARG_VALUE="$2"
+                    fi
+                else
+                    ARG_VALUE="${1#*=}"
+                fi
+                while read LINE; do
+                    CONTRACT=($LINE)
+                    local VARG_NAME="VARG_${CONTRACT[0]}"
+                    local VARG_STATE="VARG_STATE_${VARG_NAME}"
+                    if [[ "${ARG_NAME}" = "--${CONTRACT[0]}" ]] || \
+                       [[ "${CONTRACT[1]}" != '' && "${ARG_NAME}" = "-${CONTRACT[1]}" ]]; then
+                        if [[ "${!VARG_STATE}" != '' ]]; then
+                            write_error "option '${ARG_NAME}' has already been set to '${!VARG_NAME}'"
+                            return 1
+                        fi
+                        if [[ "${ARG_VALUE}" = '' ]]; then
+                            export $VARG_NAME=${CONTRACT[4]}
+                            export $VARG_STATE='default'
+                        else
+                            export $VARG_NAME="${ARG_VALUE}"
+                            export $VARG_STATE='set'
+                        fi
+                    fi
+                done <<< $EXPECTED
+                ;;
+            *)
+                POSITIONAL+=("$1")
+                ;;
+        esac
+        shift
+    done
+    exit 0
 }
 
 export COMMON_VARGS='Y'
 
 . "${COMMONDEFS}"
-vargs_parse_expected "[test:t:0]='hello how are you'"
+vargs "[test,t]='hello how are you'" 'poop' -- --test 'hi how are you' --poop="i'm good" 'what about you?' --poop='hi'
+echo ${VARG_poop} 
