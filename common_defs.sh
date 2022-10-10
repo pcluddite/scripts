@@ -5,8 +5,9 @@ if [[ ! -v "${COMMONDEFS}" ]]; then
     COMMONDEFS=$(readlink -f "${BASH_SOURCE[0]}")
 fi
 
-SCRIPT_DIR=$(dirname $(readlink -f $0))
-LIB_DIR="$(dirname "${COMMONDEFS}")/lib"
+SCRIPT_DIR=$(dirname $(readlink -f "$0"))
+COMMON_DIR=$(dirname "${COMMONDEFS}")
+LIB_DIR="${COMMON_DIR}/lib"
 
 EXIT_ERROR=1
 EXIT_FAILURE=1
