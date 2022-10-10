@@ -93,6 +93,10 @@ assert_root() {
     fi
 }
 
+is_identifier() {
+    [[ "$*" =~ ^[a-zA-Z][a-zA-Z0-9_]*$ ]]
+}
+
 arr_print() {
     assert_arg_num 1 "$@" || return $EXIT_FAILURE
     
@@ -108,18 +112,17 @@ arr_print() {
 arr() {
     assert_arg_num 1 "$@" || return $EXIT_FAILURE
 
-    local OUTVAR=
-    if [[ "$1" =~ ^[a-zA-Z][a-zA-Z0-9_]*$ ]]; then
-        OUTVAR="$1"
-        shift
-    else
-        if [[ "$1" = '' ]]; then
-            write_error 'variable must be specified'
-        else
-            write_error 'not a valid identifier'
-        fi
-        return $EXIT_FAILURE
+    local OUTVAR="$1"
+    [[ "$OUTVAR" = *'=' ]] && OUTVAR="${OUTVAR%%=*}"
+
+    if [[ "$OUTVAR" = '' ]]; then
+        return_error 'variable must be specified'
+    elif ! is_identifier "${OUTVAR}"; then
+        return_error 'not a valid identifier'
     fi
+    [[ $? -eq 0 ]] || return $EXIT_FAILURE
+    
+    shift
 
     local OPTION=
     local ARGS=()
@@ -167,11 +170,11 @@ arr() {
             assert_arg_num -1 "$@" || return $EXIT_FAILURE
             if [[ "$OPTION" = 'v' ]]; then
                 local VARNAME="$1"
-                readarray -t "${OUTVAR}" <<< "${!VARNAME}"
+                mapfile -t "${OUTVAR}" <<< "${!VARNAME}"
             elif [[ "$OPTION" = 't' ]]; then
-                readarray -t "${OUTVAR}" <<< "$1"
+                mapfile -t "${OUTVAR}" <<< "$1"
             elif [[ "$OPTION" = 'f' ]]; then
-                readarray -t "${OUTVAR}" < "$1"
+                mapfile -t "${OUTVAR}" < "$1"
             fi
         fi
     fi
