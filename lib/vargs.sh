@@ -5,10 +5,18 @@ if [[ "$COMMON_VARGS" = 'Y' ]]; then
 fi
 
 vargs_sanitize() {
-    assert_arg_num 1 "$@"
-
-    local SANITIZED=()
     local POSITIONAL=()
+    local OUTVAR=
+
+    if [[ "$1" = ':'* ]]; then
+        OUTVAR="${1#:}"
+        declare -n +g SANITIZED="$OUTVAR"
+        shift
+    else
+        declare -a +g SANITIZED
+    fi
+
+    assert_arg_num 1 "$@" || return $EXIT_FAILURE
 
     while [[ $# -gt 0 ]]; do
         local NAME=''
@@ -50,10 +58,10 @@ vargs_sanitize() {
         SANITIZED+=("${POSITIONAL[@]}")
     fi
 
-    arr_print "${SANITIZED[@]}"
+    if [[ $OUTVAR = '' ]]; then
+        arr_print "${SANITIZED[@]}"
+    fi
 }
-
-return $EXIT_SUCCESS
 
 varg_contract_parse() {
     assert_arg_num -1 "$@"
@@ -102,37 +110,47 @@ varg_contract_parse() {
         VARG_NAME="VARG_${NAME}"
     fi
 
-    local CONTRACT=
-    printf -v CONTRACT -- '--name=%s --short=%s --varname=%s --position=%d --optional=%c --default="%q"' "${NAME}" "${SHORT_NAME}" "${VARG_NAME}" "${POSITION}" "${OPTIONAL}" "$DEFAULT"
-    printf '%q' "$CONTRACT"
+    local CONTRACT=(--name $NAME --short $SHORT_NAME --varname $VARG_NAME --position $POSITION --optional $OPTIONAL --default "${DEFAULT}")
+    arr_print "${CONTRACT[@]}"
 }
 
-varg_contract() {
-    local OPTION="$1"
+vargs_opt() {
+    assert_arg_num 2 "$@" || return $EXIT_FAILURE
+
+    local SEARCH_OPT="$1"
     shift
-                    echo "$#"
+
+    if [[ "${SEARCH_OPT}" = *'=' ]]; then
+        local ARGS=()
+        vargs_sanitize :ARGS "$@"
+        SEARCH_OPT="${SEARCH_OPT%%=*}"
+
+        set -- "${ARGS[@]}"
+    fi
+
     while [[ $# -gt 0 ]]; do
         case $1 in
-            "${OPTION}="*)
-                write_error "$OPTION=${1#*=}"
-                printf '%s' "${1#*=}"
-                return $EXIT_SUCCESS
-                ;;
-            "${OPTION}")
-                printf '%s' "$2"
+            --)
                 shift
+                break
+                ;;
+            "${SEARCH_OPT}")
+                shift
+                printf '%q' "$1"
                 return $EXIT_SUCCESS
                 ;;
         esac
         shift
     done
-    return 1
+    return $EXIT_FAILURE
 }
+
+return $EXIT_SUCCESS
 
 vargs() {
     local EXPECTED=
     while [[ $# -gt 0 && "$1" != '--' ]]; do
-        local CONTRACT=$(varg_contract_parse "$1")
+        arr CONTRACT= varg_contract_parse "$1"
         [[ $? -eq 0 ]] || return $EXIT_FAILURE
         printf -v EXPECTED '%s%s\n' "${EXPECTED}" "${CONTRACT}"
         shift
