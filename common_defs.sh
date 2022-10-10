@@ -89,7 +89,7 @@ assert_arg_num() {
 assert_root() {
     assert_arg_num 0 $@
     if [[ $(id -u) -ne 0 ]]; then
-        exit_error 'This script must be run as root.'
+        return_error 'This script must be run as root.'
     fi
 }
 
