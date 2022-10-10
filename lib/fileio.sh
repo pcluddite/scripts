@@ -23,4 +23,8 @@ next_no_exist() {
     fi
 }
 
+cannonicalize() {
+    printf '%s' "$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
+}
+
 export COMMON_FILEIO='Y'
