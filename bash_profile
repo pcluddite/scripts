@@ -1,4 +1,11 @@
-# .bashrc
+# .bash_profile
+
+# Get the aliases and functions
+if [ -f ~/.bashrc ]; then
+	. ~/.bashrc
+fi
+
+# User specific environment and startup programs
 
 wine_pgrep() {
     pgrep --list-full --ignore-case 'exe' | while read -r LINE; do
