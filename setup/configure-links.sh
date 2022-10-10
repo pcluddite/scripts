@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 if [[ ! -v "${COMMONDEFS}" ]]; then
     COMMONDEFS="$(dirname "$0")/../common_defs.sh"
@@ -40,19 +40,26 @@ for (( i=0; i < ${#HOME_FOLDERS[@]}; ++i )); do
     fi
 done
 
-HISTORY_FILE="${HOME}/.bash_history"
+HOME_FILES=('.bash_history' '.bash_profile')
+HOME_LINKS=(/dev/null "${COMMON_DIR}/bash_profile")
 
-YN='N'
-if [[ -e "${HISTORY_FILE}" ]]; then
-    YN=$(prompt_yesno --prompt="'${HISTORY_FILE}' already exists! Replace with '/dev/null'?" --default='no')
-    if [[ "${YN}" = 'Y' ]]; then
-        if [[ -L "${HISTORY_FILE}" ]]; then
-            unlink "${HISTORY_FILE}"
-        else
-            rm "${HISTORY_FILE}"
+for (( i=0; i < ${#HOME_FILES[@]}; ++i )); do
+    FILE="${HOME}/${HOME_FILES[$i]}"
+    LINK="${HOME_LINKS[$i]}"
+    YN='N'
+    if [[ -e "${FILE}" ]]; then
+        YN=$(prompt_yesno --prompt="'${FILE}' already exists! Replace with '${LINK}'?" --default='no')
+        if [[ "${YN}" = 'Y' ]]; then
+            if [[ -L "${FILE}" ]]; then
+                unlink "${FILE}"
+            else
+                rm "${FILE}"
+            fi
         fi
+    else
+        YN='Y'
     fi
-fi
-if [[ "${YN}" = 'Y' ]]; then
-    ln -s '/dev/null' "${HISTORY_FILE}"
-fi
+    if [[ "${YN}" = 'Y' ]]; then
+        ln -s "${LINK}" "${FILE}"
+    fi
+done
