@@ -54,7 +54,7 @@ return_error() {
 }
 
 exit_error() {
-    return_error $@
+    return_error "$@"
     exit $?
 }
 
@@ -87,9 +87,93 @@ assert_arg_num() {
 }
 
 assert_root() {
-    assert_arg_num 0 $@
+    assert_arg_num 0 "$@" || return $EXIT_FAILURE
     if [[ $(id -u) -ne 0 ]]; then
         return_error 'This script must be run as root.'
+    fi
+}
+
+arr_print() {
+    assert_arg_num 1 "$@" || return $EXIT_FAILURE
+    
+    printf '%q' "$1"
+    shift
+
+    while [[ $# -gt 0 ]]; do
+        printf '\n%q' "$1"
+        shift
+    done
+}
+
+arr() {
+    assert_arg_num 1 "$@" || return $EXIT_FAILURE
+
+    local OUTVAR=
+    if [[ "$1" =~ ^[a-zA-Z][a-zA-Z0-9_]*$ ]]; then
+        OUTVAR="$1"
+        shift
+    else
+        if [[ "$1" = '' ]]; then
+            write_error 'variable must be specified'
+        else
+            write_error 'not a valid identifier'
+        fi
+        return $EXIT_FAILURE
+    fi
+
+    local OPTION=
+    local ARGS=()
+
+    if [[ "$1" =~ -[vtf]+.* ]]; then
+        local ARG="${1:2}"
+        OPTION="${1:1:1}"
+        shift
+        if [[ "${ARG}" = '' ]]; then
+            if [[ $# -eq 0 ]]; then
+                write_error "no value specified for '-${OPTION}'"
+                return $EXIT_FAILURE
+            fi
+        else
+            if [[ "${ARG}" = '='* ]] || [[ "${ARG}" = ':'* ]]; then
+                ARG="${ARG:1}"
+            fi
+            ARGS+=("${ARG}")
+        fi
+    elif [[ "$1" = '-c' ]]; then
+        OPTION='c'
+        shift
+    fi
+
+    if [[ "$1" = '--' ]]; then
+        shift
+    elif [[ "$1" = '-'* ]]; then
+        write_error "unrecognized option '$1'" 
+        return $EXIT_FAILURE
+    fi
+
+    if [[ $# -gt 0 ]]; then
+        ARGS+=("$@")
+    fi
+
+    set -- "${ARGS[@]}"
+
+    if [[ $# -eq 0 ]] && [[ "${OPTION}" = '' ]]; then
+        mapfile -t "${OUTVAR}"
+    else
+        if [[ "${OPTION:=c}" = 'c' ]]; then
+            assert_arg_num 1 "$@" || return $EXIT_FAILURE
+            mapfile -t "${OUTVAR}" < <("$@" || exit $EXIT_FAILURE)
+        else
+            assert_arg_num -1 "$@" || return $EXIT_FAILURE
+            if [[ "$OPTION" = 'v' ]]; then
+                local VARNAME="$1"
+                readarray -t "${OUTVAR}" <<< "${!VARNAME}"
+            elif [[ "$OPTION" = 't' ]]; then
+                readarray -t "${OUTVAR}" <<< "$1"
+            elif [[ "$OPTION" = 'f' ]]; then
+                readarray -t "${OUTVAR}" < "$1"
+            fi
+        fi
     fi
 }
 
