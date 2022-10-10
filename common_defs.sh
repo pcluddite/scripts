@@ -179,11 +179,14 @@ arr() {
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
-        STDIO)
-            . "${LIB_DIR}/stdio.sh"
-            ;;
         STRING)
             . "${LIB_DIR}/string.sh"
+            ;;
+        VARGS)
+            . "${LIB_DIR}/vargs.sh"
+            ;;
+        STDIO)
+            . "${LIB_DIR}/stdio.sh"
             ;;
         FILEIO)
             . "${LIB_DIR}/fileio.sh"

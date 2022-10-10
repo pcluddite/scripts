@@ -4,6 +4,57 @@ if [[ "$COMMON_VARGS" = 'Y' ]]; then
     return $EXIT_SUCCESS
 fi
 
+vargs_sanitize() {
+    assert_arg_num 1 "$@"
+
+    local SANITIZED=()
+    local POSITIONAL=()
+
+    while [[ $# -gt 0 ]]; do
+        local NAME=''
+        local VALUE=''
+        case $1 in
+            --)
+                shift
+                break
+                ;;
+            -*=*)
+                NAME="${1%%=*}"
+                VALUE="${1#*=}"
+                ;;
+            -*)
+                NAME="$1"
+                if [[ "$2" != '-'* ]] && [[ "$2" != '' ]]; then
+                    VALUE="$2"
+                    shift
+                fi
+                ;;
+            *)
+                POSITIONAL+=("$1")
+                ;;
+        esac
+        
+        if [[ "$NAME" != '' ]]; then
+            SANITIZED+=("${NAME}")
+            SANITIZED+=("${VALUE}")
+        fi
+        shift
+    done
+
+    if [[ $# -gt 0 ]]; then
+        POSITIONAL+=("$@")
+    fi
+
+    if [[ ${#POSITIONAL[@]} -gt 0 ]]; then
+        SANITIZED+=('--')
+        SANITIZED+=("${POSITIONAL[@]}")
+    fi
+
+    arr_print "${SANITIZED[@]}"
+}
+
+return $EXIT_SUCCESS
+
 varg_contract_parse() {
     assert_arg_num -1 "$@"
 
