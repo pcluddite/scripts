@@ -5,24 +5,38 @@ if [[ "${COMMON_STRING}" = 'Y' ]]; then
 fi
 
 lower() {
-    echo "$1" | tr '[:upper:]' '[:lower:]'
+    assert_arg_num 1 "$@" || return $EXIT_FAILUER
+    printf '%s' "${*,,}"
 }
 
 upper() {
-    echo "$1" | tr '[:lower:]' '[:upper:]'
+    assert_arg_num 1 "$@" || return $EXIT_FAILURE
+    printf '%s' "${*^^}"
 }
 
 starts_with() {
-    [[ "${1:0:${#2}}" = "$2" ]]
+    assert_arg_num -2 "$@" || return $EXIT_FAILURE
+    [[ "$1" = "$2"* ]]
 }
 
 ends_with() {
-    [[ "${1:$((${#1} - ${#2}))}" = "$2" ]]
+    assert_arg_num -2 "$@" || return $EXIT_FAILURE
+    [[ "$1" = *"$2" ]]
 }
 
 is_integer() {
-    REGEX='^[0-9]+$'
-    [[ "$1" =~ $REGEX ]]
+    assert_arg_num -1 "$@" || return $EXIT_FAILURE
+    local INT="$1"
+    if [[ "$INT" = '' ]]; then
+        # false if empty string
+        return $EXIT_FAILURE
+    elif [[ "$INT" = '-'* ]] || [[ "$INT" = '+'* ]]; then
+        # remove any leading sign
+        INT="${INT:1}"
+    fi
+    
+    expr "${INT}" + 0 &> /dev/null && return $EXIT_SUCCESS
+    [[ $? -eq 1 ]] # err status 1 means expression was 0
 }
 
 COMMON_STRING='Y'
