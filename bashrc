@@ -26,6 +26,19 @@ else
     alias rm='rm -i'
 fi
 
+if command -v 'wine' &> /dev/null; then
+    export WINEPREFIX=${WINEPREFIX="${HOME}/.wine"}
+    for DOSDEVICE in "${WINEPREFIX}/dosdevices"/*; do
+        DOSDEVICE=$(basename "${DOSDEVICE}")
+        if [[ "${DOSDEVICE}" = *':' ]]; then
+            export "wine_${DOSDEVICE:0:1}"="$(readlink -f "${WINEPREFIX}/dosdevices/${DOSDEVICE}")"
+        fi
+    done
+    if [[ -e "${wine_c}/Program Files/Notepad++/notepad++.exe" ]]; then
+        alias edit="env WINEPREFIX=\"${WINEPREFIX}\" wine 'C:\\Program Files\\Notepad++\\notepad++.exe'"
+    fi
+fi
+
 alias cp='cp -i'
 alias mv='mv -i'
 
