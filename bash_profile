@@ -27,7 +27,7 @@ if command -v 'wine' &> /dev/null; then
         fi
     done
     if [[ -e "${wine_c}/Program Files/Notepad++/notepad++.exe" ]]; then
-        alias edit="env WINEPREFIX=\"${WINEPREFIX}\" wine 'C:\\Program Files\\Notepad++\\notepad++.exe'"
+        alias notepad="wine 'C:\\Program Files\\Notepad++\\notepad++.exe'"
     fi
 fi
 
@@ -44,5 +44,3 @@ alias status='sudo systemctl status'
 alias ustatus='systemctl --user status'
 
 alias screen='tmux attach -t'
-
-alias hex="printf '0x%x\\n'"
