@@ -27,4 +27,4 @@ cannonicalize() {
     printf '%s' "$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
 }
 
-export COMMON_FILEIO='Y'
+COMMON_FILEIO='Y'

@@ -25,4 +25,4 @@ is_integer() {
     [[ "$1" =~ $REGEX ]]
 }
 
-export COMMON_STRING='Y'
+COMMON_STRING='Y'

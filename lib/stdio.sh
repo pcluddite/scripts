@@ -77,4 +77,4 @@ noop() {
     printf '### NO-OP ### %s\n' "$ARGS"
 }
 
-export COMMON_STDIO='Y'
+COMMON_STDIO='Y'

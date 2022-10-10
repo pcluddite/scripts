@@ -2,15 +2,15 @@
 
 if [[ ! -v "${COMMONDEFS}" ]]; then
     # define COMMONDEFS if not already defined
-    export COMMONDEFS=$(readlink -f "${BASH_SOURCE[0]}")
+    COMMONDEFS=$(readlink -f "${BASH_SOURCE[0]}")
 fi
 
-export SCRIPT_DIR=$(dirname $(readlink -f $0))
-export LIB_DIR="$(dirname "${COMMONDEFS}")/lib"
+SCRIPT_DIR=$(dirname $(readlink -f $0))
+LIB_DIR="$(dirname "${COMMONDEFS}")/lib"
 
-export EXIT_ERROR=1
-export EXIT_FAILURE=1
-export EXIT_SUCCESS=0
+EXIT_ERROR=1
+EXIT_FAILURE=1
+EXIT_SUCCESS=0
 
 write_error() {
     printf '%s: %s\n' $(basename "$0") "$*" 1>&2
