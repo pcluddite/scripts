@@ -58,6 +58,10 @@ exit_error() {
     exit $?
 }
 
+is_identifier() {
+    [[ "$*" =~ ^[a-zA-Z][a-zA-Z0-9_]*$ ]]
+}
+
 assert_arg_num() {
     local NUM=0
     if [[ $# -gt 0 ]]; then
@@ -86,15 +90,15 @@ assert_arg_num() {
     return $EXIT_SUCCESS
 }
 
+assert_identifier() {
+    is_identifier "$@" || return_error "'$*' is not a valid identifier"
+}
+
 assert_root() {
     assert_arg_num 0 "$@" || return $EXIT_FAILURE
     if [[ $(id -u) -ne 0 ]]; then
         return_error 'This script must be run as root.'
     fi
-}
-
-is_identifier() {
-    [[ "$*" =~ ^[a-zA-Z][a-zA-Z0-9_]*$ ]]
 }
 
 arr_print() {
