@@ -1,8 +1,12 @@
 #!/bin/bash
 
-set -o errexit
+if [[ "$COMMONDEFS" = '' ]]; then
+    export COMMONDEFS="$(dirname ${BASH_SOURCE[0]})/common_defs.sh"
+fi
 
-. "$(dirname $(readlink -f $0))/common_defs.sh" STRING FILEIO
+if ! . "$COMMONDEFS" STRING FILEIO ERREXIT; then
+    return 1
+fi
 
 DRIVE_C="${HOME}/.wine/drive_c"
 DOSDRIVE_C="${HOME}/.wine/dosdevices/c:"
@@ -84,10 +88,11 @@ wineico() {
 }
 
 EXE_FILE=''
-
 ICON_SW='N'
+
+ENV_XDGOPEN='N'
 ENTRY_NAME=''
-ENTRY_ICON='application-x-wine-extension-msp'
+ENTRY_ICON='application-x-ms-dos-executable'
 ENTRY_COMMENT=''
 ENTRY_TERMINAL='false'
 ENTRY_NOTIFY='true'
@@ -119,9 +124,11 @@ while [[ "$#" -gt 0 ]]; do
         --new-icon)
             ICON_SW='Y'
             ;;
+        --xdg-open)
+            ENV_XDGOPEN='Y'
+            ;;
         -c=*|--comment=*)
             ENTRY_COMMENT="${1#*=}"
-            shift
             ;;
         -c|--comment)
             if [[ "$#" -gt 1 && "${2:0:1}" != '-' ]]; then
@@ -144,7 +151,7 @@ while [[ "$#" -gt 0 ]]; do
             if [[ "$EXE_FILE" = '' ]]; then
                 EXE_FILE="$1"
             else
-                exit_error "Too many arguments '$1'"
+                exit_error "too many arguments '$1'"
             fi
             ;;
     esac
@@ -174,6 +181,10 @@ if [[ "$ICON_SW" = 'Y' ]]; then
     else
         write_error 'icon could not be extracted'
     fi
+fi
+
+if [[ "$ENV_XDGOPEN" = 'Y' ]]; then
+    printf '%s\n' "#!/usr/bin/env xdg-open"
 fi
 
 printf '[Desktop Entry]\n'
