@@ -2,51 +2,57 @@
 
 set -o errexit
 
-. "$(dirname $(readlink -f $0))/common_defs.sh" STRING
+. "$(dirname $(readlink -f $0))/common_defs.sh" STRING FILEIO
+
+DRIVE_C="${HOME}/.wine/drive_c"
+DOSDRIVE_C="${HOME}/.wine/dosdevices/c:"
 
 win_base() {
     local NIX_PATH="$1"
-    if starts_with "$NIX_PATH" "${HOME}/Desktop"; then
-        printf 'C:\\users\\%s\\Desktop\n' "$USER"
-    elif starts_with "$NIX_PATH" "${HOME}/Documents"; then
-        printf 'C:\\users\\%s\\Documents\n' "$USER"
-    elif starts_with "$NIX_PATH" "${HOME}/Pictures"; then
-        printf 'C:\\users\\%s\\Pictures\n' "$USER"
-    elif starts_with "$NIX_PATH" "${HOME}/Music"; then
-        printf 'C:\\users\\%s\\Music\n' "$USER"
-    elif starts_with "$NIX_PATH" "${HOME}/Videos"; then
-        printf 'C:\\users\\%s\\Videos\n' "$USER"
-    elif starts_with "$NIX_PATH" "${HOME}/Downloads"; then
-        printf 'C:\\users\\%s\\Downloads\n' "$USER"
-    elif starts_with "$NIX_PATH" "${HOME}/Templates"; then
-        printf 'C:\\users\\%s\\Templates\n' "$USER"
-    else
-        printf 'Z:\n'
+    local WINE_HOME="${DRIVE_C}/users/${USER}"
+    
+    for FILE in "$WINE_HOME"/*; do
+        if [[ -d "${FILE}" && -L "${FILE}" ]]; then
+            local DIR_NAME="$(basename "${FILE}")"
+            local LINK_PATH=$(readlink "${FILE}")
+            if [[ "${NIX_PATH}" = "${LINK_PATH}"* ]]; then
+                printf '%s' "C:\\users\\${USER}\\${DIR_NAME}"
+                return $EXIT_SUCCESS
+            fi
+        fi
+    done
+
+    if [[ "${NIX_PATH}" = "${DRIVE_C}"* ]] || [[ "${NIX_PATH}" = "${DOSDRIVE_C}"* ]]; then
+        printf '%s' 'C:'
+        return $EXIT_SUCCESS
     fi
+
+
+    printf '%s' 'Z:'
+    return $EXIT_SUCCESS
 }
 
 win_path() {
-    local NIX_PATH="$1"
-    local WIN_PATH="$2"
-    local BASE_DIR=$(win_base "$NIX_PATH")
+    local NIX_PATH="$(dirname "$1")"
+    local WIN_PATH="$(basename "$1")"
+    local WIN_BASE="$(win_base "$NIX_PATH")"
 
-    while [[ "$NIX_PATH" != '/' && "$NIX_PATH" != 'z:' ]]; do
-        WIN_PATH="$(basename "$NIX_PATH")\\${WIN_PATH}"
-        NIX_PATH=$(dirname "$NIX_PATH")
+    while [[ "${NIX_PATH}" != '/' && "${NIX_PATH}" != 'z:' ]] && \
+          [[ "${NIX_PATH}" != "${DRIVE_C}" && "${NIX_PATH}" != "${DOSDRIVE_C}" ]]; do
+        WIN_PATH="$(basename "${NIX_PATH}")\\${WIN_PATH}"
+        NIX_PATH=$(dirname "${NIX_PATH}")
     done
 
-    if starts_with "$BASE_DIR" 'C:'; then
-        WIN_PATH="${WIN_PATH:(( ${#BASE_DIR} - 3 ))}"
-    fi
+    WIN_PATH="${WIN_BASE}\\${WIN_PATH:$(( ${#WIN_BASE} - 2 ))}"
 
-    printf '%q\n' "$BASE_DIR\\$WIN_PATH"
+    printf '%q' "${WIN_PATH}"
+    return $EXIT_SUCCESS
 }
 
-get_startin_path() {
+nix_path() {
     local WIN_PATH="$(printf '%b' "$1")"
-    local EXE_BASE="$2"
     local NIX_PATH=''
-    if starts_with "$WIN_PATH" 'C:'; then
+    if [[ "$WIN_PATH" = 'C:'* ]]; then
         local BACKSLASH='\\'
         local SLASH='/'
         NIX_PATH="${WIN_PATH//${BACKSLASH}/${SLASH}}"
@@ -56,7 +62,7 @@ get_startin_path() {
         NIX_PATH="z:${EXE_BASE}"
     fi
     NIX_PATH="${HOME}/.wine/dosdevices/${NIX_PATH}"
-    printf "%s\n" "$NIX_PATH"
+    printf "%s" "$NIX_PATH"
 }
 
 wineico() {
@@ -151,14 +157,15 @@ elif [[ ! -f "$EXE_FILE" ]]; then
     exit_error "'$EXE_FILE' does not exist"
 fi
 
-EXE_FILE="$(readlink -f "$EXE_FILE")"
+EXE_FILE="$(cannonicalize "$EXE_FILE")"
+
 if [[ "$ENTRY_NAME" = '' ]]; then
     ENTRY_NAME="$( basename "$EXE_FILE" ".${EXE_FILE##*.}" )"
 fi
 
+WIN_PATH="$(win_path "$EXE_FILE")"
 EXE_NAME="$(basename "$EXE_FILE")"
 EXE_BASE="$(dirname "$EXE_FILE")"
-WIN_PATH="$(win_path "$EXE_BASE" "$EXE_NAME")"
 
 if [[ "$ICON_SW" = 'Y' ]]; then
     ICON_NAME="$(wineico "$EXE_FILE" "$ENTRY_NAME")"
@@ -174,7 +181,7 @@ printf 'Name=%s\n' "$ENTRY_NAME"
 printf 'Exec=env WINEPREFIX="%q/.wine" wine %s\n' "$HOME" "${WIN_PATH//\\/\\\\}"
 printf 'Type=Application\n'
 printf 'StartupNotify=%s\n' "$ENTRY_NOTIFY"
-printf 'Path=%s\n' "$(get_startin_path "$WIN_PATH" "$EXE_BASE")"
+printf 'Path=%s\n' "$(nix_path "$WIN_PATH")"
 printf 'Icon=%s\n' "$ENTRY_ICON"
 printf 'StartupWMClass=%s\n' "$EXE_NAME"
 printf 'Comment=%s\n' "$ENTRY_COMMENT"
