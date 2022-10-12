@@ -28,7 +28,11 @@ next_no_exist() {
 path_cannonical() {
     assert_arg_num 1 "$@" || return $EXIT_FAILURE
     while [[ $# -gt 0 ]]; do
-        printf '%s/%s\n' "$(cd "$(dirname "$1")"; pwd)" "$(basename "$1")"
+        if [[ -d "$1" ]]; then
+            printf '%s\n' "$(cd "$1"; pwd)"
+        else
+            printf '%s/%s\n' "$(cd "$(dirname "$1")"; pwd)" "$(basename "$1")"
+        fi
         shift
     done
 }
@@ -67,41 +71,40 @@ ls_wine_drives() {
     done
 }
 
-return $EXIT_SUCCESS
-
 path_wine() {
     assert_arg_num 1 "$@" || return $EXIT_FAILURE
+    local NIX_PATH=$(path_cannonical "$1")
+    local WINEPREFIX="${WINEPREFIX:-$HOME/.wine}"
+    local WINE_C="${WINEPREFIX}/dosdevices/c:"
+    local WINE_HOME="${WINE_C}/users/${USER}"
 
-    local NIX_PATH="$1"
-    local WINE_HOME="${DRIVE_C}/users/${USER}"
-    local WIN_PATH=
+    local WIN_BASE=
     for FILE in "$WINE_HOME"/*; do
         if [[ -d "${FILE}" && -L "${FILE}" ]]; then
             local DIR_NAME="$(basename "${FILE}")"
-            local LINK_PATH=$(readlink "${FILE}")
+            local LINK_PATH=$(path_cannonical $(readlink "${FILE}"))
             if [[ "${NIX_PATH}" = "${LINK_PATH}"* ]]; then
-                printf '%s' "C:\\users\\${USER}\\${DIR_NAME}"
+                NIX_PATH="${NIX_PATH#${LINK_PATH}}"
+                WIN_BASE="C:\\users\\${USER}\\${DIR_NAME}"
+                break
             fi
         fi
     done
 
-    if [[ "${NIX_PATH}" = "${DRIVE_C}"* ]] || [[ "${NIX_PATH}" = "${DOSDRIVE_C}"* ]]; then
-        printf '%s' 'C:'
+    if [[ "${WIN_BASE}" = '' ]]; then
+        WIN_BASE='z:'
+        NIX_PATH="${NIX_PATH#/}"
     fi
-    
-    local NIX_PATH="$(dirname "$1")"
-    local WIN_PATH="$(basename "$1")"
-    local WIN_BASE="$(win_base "$NIX_PATH")"
 
-    while [[ "${NIX_PATH}" != '/' && "${NIX_PATH}" != 'z:' ]] && \
-          [[ "${NIX_PATH}" != "${DRIVE_C}" && "${NIX_PATH}" != "${DOSDRIVE_C}" ]]; do
+    local WIN_PATH=
+    while [[ "${NIX_PATH}" != '.' ]]; do
         WIN_PATH="$(basename "${NIX_PATH}")\\${WIN_PATH}"
         NIX_PATH=$(dirname "${NIX_PATH}")
     done
 
-    WIN_PATH="${WIN_BASE}\\${WIN_PATH:$(( ${#WIN_BASE} - 2 ))}"
-
-    printf '%s' "${WIN_PATH}"
+    printf '%s\\%s' "${WIN_BASE}" "${WIN_PATH}"
 }
+
+return $EXIT_SUCCESS
 
 COMMON_FILEIO='Y'
