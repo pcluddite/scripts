@@ -15,7 +15,7 @@ EXIT_FAILURE=1
 EXIT_SUCCESS=0
 
 write_error() {
-    printf '%s: %s\n' "${SCIPRT_NAME}" "$*" 1>&2
+    printf '%s: %s\n' "${SCRIPT_NAME}" "$*" 1>&2
 }
 
 errorf() {
@@ -133,9 +133,13 @@ assert_identifier() {
     is_identifier "$@" || return_error "'$*' is not a valid identifier"
 }
 
+is_root() {
+    [[ $(id -u) = 0 ]];
+}
+
 assert_root() {
     assert_arg_num 0 "$@" || return $EXIT_FAILURE
-    if [[ $(id -u) -ne 0 ]]; then
+    if ! is_root; then
         return_error 'This script must be run as root.'
     fi
 }
