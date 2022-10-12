@@ -18,8 +18,9 @@ write_error() {
     printf '%s: %s\n' "${SCRIPT_NAME}" "$*" 1>&2
 }
 
-errorf() {
+infof() {
     local VARNAME=
+    local PREFIX=
     while [[ $# -gt 0 ]]; do
         case $1 in
             --)
@@ -30,6 +31,15 @@ errorf() {
                 VARNAME="${1:2}"
                 if [[ "${VARNAME}" = '' ]]; then
                     VARNAME="$2"
+                    shift
+                fi
+                ;;
+            --prefix*)
+                PREFIX="${1#--prefix}"
+                if [[ "${PREFIX}" = '='* ]]; then
+                    PREFIX=${PREFIX:1}
+                elif [[ "${PREFIX}" = '' ]]; then
+                    PREFIX="$2"
                     shift
                 fi
                 ;;
@@ -44,16 +54,20 @@ errorf() {
     shift
 
     if [[ "$VARNAME" = '' ]]; then
-        declare ERRMSG=
+        declare INFOMSG=
     else
-        declare -n ERRMSG=$VARNAME || return $?
+        declare -n INFOMSG=$VARNAME || return $?
     fi
 
-    printf -v ERRMSG "${FORMAT}" "$@" || return $?
-    printf -v ERRMSG '%s: %s' "${SCRIPT_NAME}" "${ERRMSG}" || return $?
+    printf -v INFOMSG "${FORMAT}" "$@" || return $?
+    printf -v INFOMSG '%s %s' "${PREFIX:=${SCRIPT_NAME}:}" "${INFOMSG}" || return $?
     if [[ "$VARNAME" = '' ]]; then
-        printf '%s\n' "$ERRMSG" 1>&2
+        printf '%s\n' "$INFOMSG"
     fi
+}
+
+errorf() {
+    infof --prefix "${SCRIPT_NAME}: ERROR:" "$@" 1>&2
 }
 
 return_error() {
