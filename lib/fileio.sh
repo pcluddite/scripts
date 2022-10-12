@@ -67,4 +67,41 @@ ls_wine_drives() {
     done
 }
 
+return $EXIT_SUCCESS
+
+path_wine() {
+    assert_arg_num 1 "$@" || return $EXIT_FAILURE
+
+    local NIX_PATH="$1"
+    local WINE_HOME="${DRIVE_C}/users/${USER}"
+    local WIN_PATH=
+    for FILE in "$WINE_HOME"/*; do
+        if [[ -d "${FILE}" && -L "${FILE}" ]]; then
+            local DIR_NAME="$(basename "${FILE}")"
+            local LINK_PATH=$(readlink "${FILE}")
+            if [[ "${NIX_PATH}" = "${LINK_PATH}"* ]]; then
+                printf '%s' "C:\\users\\${USER}\\${DIR_NAME}"
+            fi
+        fi
+    done
+
+    if [[ "${NIX_PATH}" = "${DRIVE_C}"* ]] || [[ "${NIX_PATH}" = "${DOSDRIVE_C}"* ]]; then
+        printf '%s' 'C:'
+    fi
+    
+    local NIX_PATH="$(dirname "$1")"
+    local WIN_PATH="$(basename "$1")"
+    local WIN_BASE="$(win_base "$NIX_PATH")"
+
+    while [[ "${NIX_PATH}" != '/' && "${NIX_PATH}" != 'z:' ]] && \
+          [[ "${NIX_PATH}" != "${DRIVE_C}" && "${NIX_PATH}" != "${DOSDRIVE_C}" ]]; do
+        WIN_PATH="$(basename "${NIX_PATH}")\\${WIN_PATH}"
+        NIX_PATH=$(dirname "${NIX_PATH}")
+    done
+
+    WIN_PATH="${WIN_BASE}\\${WIN_PATH:$(( ${#WIN_BASE} - 2 ))}"
+
+    printf '%s' "${WIN_PATH}"
+}
+
 COMMON_FILEIO='Y'
