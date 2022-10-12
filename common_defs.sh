@@ -174,7 +174,8 @@ arr() {
     assert_arg_num 1 "$@" || return $EXIT_FAILURE
 
     local OUTVAR="$1"
-    [[ "$OUTVAR" = *'=' ]] && OUTVAR="${OUTVAR%%=*}"
+    [[ "${OUTVAR}" = *'=' ]] && OUTVAR="${OUTVAR%%=}"
+    [[ "${OUTVAR}" = ':'* ]] && OUTVAR="${OUTVAR#:}"
 
     if [[ "$OUTVAR" = '' ]]; then
         return_error 'variable must be specified'
