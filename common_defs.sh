@@ -5,6 +5,7 @@ if [[ ! -v "${COMMONDEFS}" ]]; then
     COMMONDEFS=$(readlink -f "${BASH_SOURCE[0]}")
 fi
 
+SCRIPT_NAME="$(basename "$0")"
 SCRIPT_DIR=$(dirname $(readlink -f "$0"))
 COMMON_DIR=$(dirname "${COMMONDEFS}")
 LIB_DIR="${COMMON_DIR}/lib"
@@ -14,7 +15,45 @@ EXIT_FAILURE=1
 EXIT_SUCCESS=0
 
 write_error() {
-    printf '%s: %s\n' $(basename "$0") "$*" 1>&2
+    printf '%s: %s\n' "${SCIPRT_NAME}" "$*" 1>&2
+}
+
+errorf() {
+    local VARNAME=
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --)
+                shift
+                break
+                ;;
+            -v*)
+                VARNAME="${1:2}"
+                if [[ "${VARNAME}" = '' ]]; then
+                    VARNAME="$2"
+                    shift
+                fi
+                ;;
+            *)
+                break
+                ;;
+        esac
+        shift
+    done
+
+    local FORMAT="$1"
+    shift
+
+    if [[ "$VARNAME" = '' ]]; then
+        declare ERRMSG=
+    else
+        declare -n ERRMSG=$VARNAME || return $?
+    fi
+
+    printf -v ERRMSG "${FORMAT}" "$@" || return $?
+    printf -v ERRMSG '%s: %s' "${SCRIPT_NAME}" "${ERRMSG}" || return $?
+    if [[ "$VARNAME" = '' ]]; then
+        printf '%s\n' "$ERRMSG" 1>&2
+    fi
 }
 
 return_error() {
