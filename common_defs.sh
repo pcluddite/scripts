@@ -173,70 +173,70 @@ arr_print() {
 arr() {
     assert_arg_num 1 "$@" || return $EXIT_FAILURE
 
-    local OUTVAR="$1"
-    [[ "${OUTVAR}" = *'=' ]] && OUTVAR="${OUTVAR%%=}"
-    [[ "${OUTVAR}" = ':'* ]] && OUTVAR="${OUTVAR#:}"
+    local __OUTVAR="$1"
+    [[ "${__OUTVAR}" = *'=' ]] && __OUTVAR="${__OUTVAR%%=}"
+    [[ "${__OUTVAR}" = ':'* ]] && __OUTVAR="${__OUTVAR#:}"
 
-    if [[ "$OUTVAR" = '' ]]; then
+    if [[ "$__OUTVAR" = '' ]]; then
         return_error 'variable must be specified'
-    elif ! is_identifier "${OUTVAR}"; then
+    elif ! is_identifier "${__OUTVAR}"; then
         return_error 'not a valid identifier'
     fi
     [[ $? -eq 0 ]] || return $EXIT_FAILURE
     
     shift
 
-    local OPTION=
-    local ARGS=()
+    local __OPTION=
+    local __ARGS=()
 
     if [[ "$1" =~ -[vtf]+.* ]]; then
         local ARG="${1:2}"
-        OPTION="${1:1:1}"
+        __OPTION="${1:1:1}"
         shift
         if [[ "${ARG}" = '' ]]; then
             if [[ $# -eq 0 ]]; then
-                write_error "no value specified for '-${OPTION}'"
+                write_error "no value specified for '-${__OPTION}'"
                 return $EXIT_FAILURE
             fi
         else
             if [[ "${ARG}" = '='* ]] || [[ "${ARG}" = ':'* ]]; then
                 ARG="${ARG:1}"
             fi
-            ARGS+=("${ARG}")
+            __ARGS+=("${ARG}")
         fi
     elif [[ "$1" = '-c' ]]; then
-        OPTION='c'
+        __OPTION='c'
         shift
     fi
 
     if [[ "$1" = '--' ]]; then
         shift
     elif [[ "$1" = '-'* ]]; then
-        write_error "unrecognized option '$1'" 
+        write_error "unrecognized __OPTION '$1'" 
         return $EXIT_FAILURE
     fi
 
     if [[ $# -gt 0 ]]; then
-        ARGS+=("$@")
+        __ARGS+=("$@")
     fi
 
-    set -- "${ARGS[@]}"
+    set -- "${__ARGS[@]}"
 
-    if [[ $# -eq 0 ]] && [[ "${OPTION}" = '' ]]; then
-        mapfile -t "${OUTVAR}"
+    if [[ $# -eq 0 ]] && [[ "${__OPTION}" = '' ]]; then
+        mapfile -t "${__OUTVAR}"
     else
-        if [[ "${OPTION:=c}" = 'c' ]]; then
+        if [[ "${__OPTION:=c}" = 'c' ]]; then
             assert_arg_num 1 "$@" || return $EXIT_FAILURE
-            mapfile -t "${OUTVAR}" < <("$@" || exit $EXIT_FAILURE)
+            mapfile -t "${__OUTVAR}" < <("$@" || exit $EXIT_FAILURE)
         else
             assert_arg_num -1 "$@" || return $EXIT_FAILURE
-            if [[ "$OPTION" = 'v' ]]; then
+            if [[ "$__OPTION" = 'v' ]]; then
                 local VARNAME="$1"
-                mapfile -t "${OUTVAR}" <<< "${!VARNAME}"
-            elif [[ "$OPTION" = 't' ]]; then
-                mapfile -t "${OUTVAR}" <<< "$1"
-            elif [[ "$OPTION" = 'f' ]]; then
-                mapfile -t "${OUTVAR}" < "$1"
+                mapfile -t "${__OUTVAR}" <<< "${!VARNAME}"
+            elif [[ "$__OPTION" = 't' ]]; then
+                mapfile -t "${__OUTVAR}" <<< "$1"
+            elif [[ "$__OPTION" = 'f' ]]; then
+                mapfile -t "${__OUTVAR}" < "$1"
             fi
         fi
     fi
