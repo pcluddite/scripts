@@ -64,7 +64,7 @@ ls_wine_drives() {
     while [[ $# -gt 0 ]]; do
         local WINEPREFIX="$1"
         for FILE in "${WINEPREFIX}/dosdevices/"*':'; do
-            printf '%c:\\ %q\n' "$(basename "$FILE")" "$(readlink "$FILE")"
+            printf '%c:\\ %q\n' "$(basename "$FILE")" "$(path_cannonical "$FILE")"
         done
         [[ $# -gt 1 ]] && printf '\n%q:\n' "$2"
         shift
@@ -73,38 +73,51 @@ ls_wine_drives() {
 
 path_wine() {
     assert_arg_num 1 "$@" || return $EXIT_FAILURE
-    local NIX_PATH=$(path_cannonical "$1")
+    local NIX_PATH=$(readlink -f "$1")
     local WINEPREFIX="${WINEPREFIX:-$HOME/.wine}"
-    local WINE_C="${WINEPREFIX}/dosdevices/c:"
-    local WINE_HOME="${WINE_C}/users/${USER}"
 
     local WIN_BASE=
-    for FILE in "$WINE_HOME"/*; do
-        if [[ -d "${FILE}" && -L "${FILE}" ]]; then
-            local DIR_NAME="$(basename "${FILE}")"
-            local LINK_PATH=$(path_cannonical $(readlink "${FILE}"))
-            if [[ "${NIX_PATH}" = "${LINK_PATH}"* ]]; then
-                NIX_PATH="${NIX_PATH#${LINK_PATH}}"
-                WIN_BASE="C:\\users\\${USER}\\${DIR_NAME}"
-                break
-            fi
+    local WINE_C=
+    while read -r DRIVE && [[ "${WIN_BASE}" = '' ]]; do
+        local DRIVE_LETTER="${DRIVE%%\\*}"
+        local DRIVE_PATH="$(readlink -f "${DRIVE#*\\ }")"
+        [[ "${DRIVE_LETTER}" = 'c:' ]] && WINE_C="${DRIVE_PATH}"
+        if [[ "${DRIVE_LETTER}" != 'z:' && "${NIX_PATH}" = "${DRIVE_PATH}"* ]]; then
+            WIN_BASE="${DRIVE_LETTER^^}"
+            NIX_PATH="${NIX_PATH#${DRIVE_PATH}}"
         fi
-    done
+    done < <(ls_wine_drives "${WINEPREFIX}")
+
+    if [[ "$WIN_BASE" = '' ]]; then
+        WINE_C="${WINE_C:-${WINEPREFIX}/dosdevices/c:}"
+        local WINE_HOME="${WINE_C}/users/${USER}"
+        for FILE in "$WINE_HOME"/*; do
+            if [[ -d "${FILE}" && -L "${FILE}" ]]; then
+                local DIR_NAME="$(basename "${FILE}")"
+                local LINK_PATH="$(readlink -f "${FILE}")"
+                if [[ "${NIX_PATH}" = "${LINK_PATH}"* ]]; then
+                    WIN_BASE="C:\\users\\${USER}\\${DIR_NAME}"
+                    NIX_PATH="${NIX_PATH#${LINK_PATH}}"
+                    break
+                fi
+            fi
+        done
+    fi
 
     if [[ "${WIN_BASE}" = '' ]]; then
         WIN_BASE='z:'
         NIX_PATH="${NIX_PATH#/}"
     fi
 
-    local WIN_PATH=
-    while [[ "${NIX_PATH}" != '.' ]]; do
+    local WIN_PATH=$(basename "${NIX_PATH}")
+    NIX_PATH=$(dirname "${NIX_PATH}")
+
+    while [[ "${NIX_PATH}" != '.' && "${NIX_PATH}" != '/' ]]; do
         WIN_PATH="$(basename "${NIX_PATH}")\\${WIN_PATH}"
-        NIX_PATH=$(dirname "${NIX_PATH}")
+        NIX_PATH="$(dirname "${NIX_PATH}")"
     done
 
     printf '%s\\%s' "${WIN_BASE}" "${WIN_PATH}"
 }
-
-return $EXIT_SUCCESS
 
 COMMON_FILEIO='Y'
