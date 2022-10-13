@@ -2,12 +2,12 @@
 
 if [[ ! -v "${COMMONDEFS}" ]]; then
     # define COMMONDEFS if not already defined
-    COMMONDEFS=$(readlink -f "${BASH_SOURCE[0]}")
+    COMMONDEFS=$(readlink -f -- "${BASH_SOURCE[0]}")
 fi
 
-SCRIPT_NAME="$(basename "$0")"
-SCRIPT_DIR=$(dirname $(readlink -f "$0"))
-COMMON_DIR=$(dirname "${COMMONDEFS}")
+SCRIPT_NAME="$(basename -- "$0")"
+SCRIPT_DIR=$(dirname -- $(readlink -f -- "$0"))
+COMMON_DIR=$(dirname -- "${COMMONDEFS}")
 LIB_DIR="${COMMON_DIR}/lib"
 
 EXIT_ERROR=1
