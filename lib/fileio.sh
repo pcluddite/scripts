@@ -54,7 +54,36 @@ unlink_rm() {
 wine_canonical() {
     assert_arg_num 1 "$@" || return $EXIT_FAILURE
     local WINEPREFIX="${WINEPREFIX:-${HOME}/.wine}"
-    local WIN_PATH="$1"
+    local REL_WIN="$1"
+    local ABS_WIN=
+
+    if [[ "${REL_WIN}" =~ ^[a-zA-Z]:.*$ ]]; then
+        ABS_WIN="${REL_WIN%%:*}:\\"
+    elif [[ "${NIX_PATH:=$PWD}" = '/' ]]; then
+        ABS_WIN='z:\'
+    else
+        while read -r DRIVE && [[ "${ABS_WIN}" = '' ]]; do
+            local DRIVE_LETTER="${DRIVE%%\\*}"
+            local DRIVE_PATH="$(readlink -f "${DRIVE#*\\ }")"
+            if [[ "${DRIVE_LETTER}" != 'z:' && "${NIX_PATH}" = "${DRIVE_PATH}"* ]]; then
+                ABS_WIN="${DRIVE_LETTER^^}\\"
+            fi
+        done < <(ls_wine_drives "${WINEPREFIX}")
+
+        if [[ "${ABS_WIN}" = '' ]]; then
+            ABS_WIN=$(basename "${NIX_PATH}")
+            NIX_PATH=$(dirname "${NIX_PATH}")
+
+            while [[ "${NIX_PATH}" != '.' && "${NIX_PATH}" != '/' ]]; do
+                ABS_WIN="$(basename "${NIX_PATH}")\\${ABS_WIN}"
+                NIX_PATH="$(dirname "${NIX_PATH}")"
+            done
+            ABS_WIN="z:\\${ABS_WIN}"
+        fi
+    fi
+    
+    printf '%q' "$ABS_WIN"
+    return $EXIT_SUCCESS
     while [[ $# -gt 0 ]]; do
         local WIN_PATH=$(env WINEPREFIX="$WINEPREFIX" wine c:\\windows\\system32\\cmd.exe /c "cd /d ${WIN_PATH} & cd")
         if [[ $? -eq 0 ]]; then
