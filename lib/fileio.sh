@@ -39,14 +39,35 @@ unlink_rm() {
     done
 }
 
-path_cannonical() {
+path_canonical() {
     assert_arg_num 1 "$@" || return $EXIT_FAILURE
+    local NIX_PATH="$PWD"
     while [[ $# -gt 0 ]]; do
-        if [[ -d "$1" ]]; then
-            printf '%s\n' "$(cd "$1"; pwd)"
+        local REL_PATH="$1"
+        local ABS_PATH=
+
+        if [[ "${REL_PATH}" = '/'* ]]; then
+            REL_PATH="${REL_PATH#*/}"
         else
-            printf '%s/%s\n' "$(cd "$(dirname "$1")"; pwd)" "$(basename "$1")"
+            ABS_PATH="${NIX_PATH}"
         fi
+
+        if [[ "${REL_PATH}" = *'/' ]]; then
+            REL_PATH="${REL_PATH%/*}"
+        fi
+
+        local LEAF=
+        while [[ "${LEAF}" != "${REL_PATH}" ]]; do
+            LEAF="${REL_PATH%%/*}"
+            if [[ "${LEAF}" = '..' && "${ABS_PATH}" != '/' ]]; then
+                ABS_PATH="${ABS_PATH%/*}"
+            elif [[ "${LEAF}" != '.' ]]; then
+                ABS_PATH="${ABS_PATH}/${LEAF}"
+            fi
+            REL_PATH="${REL_PATH#${LEAF}/}"
+        done
+
+        printf '%s\n' "${ABS_PATH}"
         shift
     done
 }
@@ -55,7 +76,7 @@ wine_canonical() {
     assert_arg_num 1 "$@" || return $EXIT_FAILURE
     local WINEPREFIX="${WINEPREFIX:-${HOME}/.wine}"
     local NIX_PATH="$PWD"
-    while [[ $# -gt 0 ]]; then
+    while [[ $# -gt 0 ]]; do
         local REL_WIN="$1"
         local ABS_WIN=
 
@@ -96,23 +117,23 @@ wine_canonical() {
         while [[ "${LEAF}" != "${REL_WIN}" ]]; do
             LEAF="${REL_WIN%%\\*}"
             if [[ "${LEAF}" = '..' && "${ABS_WIN,,}" != "${DRIVE_LETTER}" ]]; then
-                ABS_WIN="${ABS_WIN%%\\*}"
+                ABS_WIN="${ABS_WIN%\\*}"
             elif [[ "${LEAF}" != '.' ]]; then
                 ABS_WIN="${ABS_WIN}\\${LEAF}"
             fi
             REL_WIN="${REL_WIN#${LEAF}\\}"
         done
 
-        printf '%q\n' "${ABS_WIN}"
+        printf '%s\n' "${ABS_WIN}"
         shift
     done
 }
 
 ls_wine_drives() {
     if [[ $# -eq 0 ]]; then
-        arr :ARGS path_cannonical "${WINEPREFIX:=${HOME}/.wine}"
+        arr :ARGS path_canonical "${WINEPREFIX:=${HOME}/.wine}"
     else
-        arr :ARGS path_cannonical "$@"
+        arr :ARGS path_canonical "$@"
     fi
 
     set -- "${ARGS[@]}"
@@ -121,7 +142,7 @@ ls_wine_drives() {
     while [[ $# -gt 0 ]]; do
         local WINEPREFIX="$1"
         for FILE in "${WINEPREFIX}/dosdevices/"*':'; do
-            printf '%c:\\ %q\n' "$(basename "$FILE")" "$(path_cannonical "$FILE")"
+            printf '%c:\\ %q\n' "$(basename "$FILE")" "$(path_canonical "$FILE")"
         done
         [[ $# -gt 1 ]] && printf '\n%q:\n' "$2"
         shift
