@@ -184,16 +184,16 @@ vargs() {
                     ARG_VALUE="${1#*=}"
                 fi
                 while read CONTRACT; do
-                    local VARG_NAME=$(varg_contract --varname $CONTRACT)
+                    local VARG_NAME=$(vargs_opt --varname "${CONTRACT[@]}")
                     local VARG_STATE="${VARG_NAME}_STATUS"
-                    if [[ "${ARG_NAME}" = "--$(varg_contract --name $CONTRACT)" ]] || \
-                       [[ "$(varg_contract --short $CONTRACT)" != '' && "${ARG_NAME}" = "-$(varg_contract --short $CONTRACT)" ]]; then
+                    if [[ "${ARG_NAME}" = "--$(vargs_opt --name "${CONTRACT[@]}")" ]] || \
+                       [[ "$(vargs_opt --short "${CONTRACT[@]}")" != '' && "${ARG_NAME}" = "-$(vargs_opt --short "${CONTRACT[@]}")" ]]; then
                         if [[ "${!VARG_STATE}" != '' ]]; then
                             write_error "option '${ARG_NAME}' has already been set to '${!VARG_NAME}'"
                             return $EXIT_FAILURE
                         fi
                         if [[ "${ARG_VALUE}" = '' ]]; then
-                            export $VARG_NAME="$(varg_contract --default $CONTRACT)"
+                            export $VARG_NAME="$(vargs_opt --default "${CONTRACT[@]}")"
                             export $VARG_STATE='default'
                         else
                             export $VARG_NAME="${ARG_VALUE}"
@@ -217,28 +217,27 @@ vargs() {
     set -- ${POSITIONAL[@]}
 
     while read CONTRACT; do
-        local VARG_NAME=$(varg_contract --varname $CONTRACT)
+        local VARG_NAME=$(vargs_opt --varname "${CONTRACT[@]}")
         local VARG_STATE="${VARG_NAME}_STATUS"
         if [[ "${!VARG_STATE}" = '' ]]; then
-            local POSITION=$(varg_contract --position $CONTRACT)
+            local POSITION=$(vargs_opt --position "${CONTRACT[@]}")
             if [[ "$POSITION" -eq 0 ]]; then
-                if [[ $(varg_contract --optional $CONTRACT) = 'Y' ]]; then
-                    echo "$CONTRACT"
-                    export $VARG_NAME=$(varg_contract --default $CONTRACT)
-                    export $VARG_STATE='default'
+                if [[ $(vargs_opt --optional "${CONTRACT[@]}") = 'Y' ]]; then
+                    declare -g $VARG_NAME="$(vargs_opt --default "${CONTRACT[@]}")"
+                    declare -g $VARG_STATE='default'
                 else
-                    write_error "--$(varg_contract --name $CONTRACT) is required"
+                    write_error "--$(vargs_opt --name "${CONTRACT[@]}") is required"
                     return $EXIT_FAILURE
                 fi
             else
-                export $VARG_NAME=${!POSITION}
-                export $VARG_STATE=$POSITION
+                declare -g $VARG_NAME="${!POSITION}"
+                declare -g $VARG_STATE="${POSITION}"
             fi
         fi
     done <<< $EXPECTED
 }
 
-export COMMON_VARGS='Y'
+#COMMON_VARGS='Y'
 
 . "${COMMONDEFS}"
 vargs "[test,t]='hello how are you'" 'poop' -- potty fartman 'what about you?' #--test 'hi how are you'
