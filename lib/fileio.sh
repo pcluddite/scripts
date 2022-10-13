@@ -54,24 +54,32 @@ unlink_rm() {
 wine_canonical() {
     assert_arg_num 1 "$@" || return $EXIT_FAILURE
     local WINEPREFIX="${WINEPREFIX:-${HOME}/.wine}"
+    local NIX_PATH="$PWD"
     local REL_WIN="$1"
     local ABS_WIN=
 
     if [[ "${REL_WIN}" =~ ^[a-zA-Z]:.*$ ]]; then
-        ABS_WIN="${REL_WIN%%:*}:\\"
-    elif [[ "${NIX_PATH:=$PWD}" = '/' ]]; then
-        ABS_WIN='z:\'
+        ABS_WIN="${REL_WIN%%:*}:"
+        REL_WIN="${REL_WIN#*:}"
+        if [[ "${REL_WIN}" = '\'* ]]; then
+            REL_WIN="${REL_WIN:1}"
+        fi
+    elif [[ "${NIX_PATH}" = '/' ]]; then
+        ABS_WIN='z:'
     else
         while read -r DRIVE && [[ "${ABS_WIN}" = '' ]]; do
             local DRIVE_LETTER="${DRIVE%%\\*}"
             local DRIVE_PATH="$(readlink -f "${DRIVE#*\\ }")"
-            if [[ "${DRIVE_LETTER}" != 'z:' && "${NIX_PATH}" = "${DRIVE_PATH}"* ]]; then
-                ABS_WIN="${DRIVE_LETTER^^}\\"
+            if [[ "${DRIVE_LETTER,,}" != 'z:' && "${NIX_PATH}" = "${DRIVE_PATH}"* ]]; then
+                if [[ "${NIX_PATH}" = "${DRIVE_PATH}" ]]; then
+                    ABS_WIN="${DRIVE_LETTER,,}"
+                else
+                    ABS_WIN="${DRIVE_LETTER,,}\\$(basename "${NIX_PATH}")"
+                fi
             fi
         done < <(ls_wine_drives "${WINEPREFIX}")
 
         if [[ "${ABS_WIN}" = '' ]]; then
-            ABS_WIN=$(basename "${NIX_PATH}")
             NIX_PATH=$(dirname "${NIX_PATH}")
 
             while [[ "${NIX_PATH}" != '.' && "${NIX_PATH}" != '/' ]]; do
@@ -81,18 +89,21 @@ wine_canonical() {
             ABS_WIN="z:\\${ABS_WIN}"
         fi
     fi
-    
-    printf '%q' "$ABS_WIN"
-    return $EXIT_SUCCESS
-    while [[ $# -gt 0 ]]; do
-        local WIN_PATH=$(env WINEPREFIX="$WINEPREFIX" wine c:\\windows\\system32\\cmd.exe /c "cd /d ${WIN_PATH} & cd")
-        if [[ $? -eq 0 ]]; then
-            printf '%s' $(tr -d '\r' <<< "${WIN_PATH}")
-        else
-            return $EXIT_FAILURE
+
+    local DRIVE_LETTER="${ABS_WIN%%\\*}\\"
+    local LEAF=
+    while [[ "${LEAF}" != "${REL_WIN}" ]]; do
+        LEAF="${REL_WIN%%\\*}"
+        if [[ "${LEAF}" = '..' && "${ABS_WIN,,}" != "${DRIVE_LETTER}" ]]; then
+            ABS_WIN="${ABS_WIN%%\\*}"
+        elif [[ "${LEAF}" != '.' ]]; then
+            ABS_WIN="${ABS_WIN}\\${LEAF}"
         fi
-        shift
+        REL_WIN="${REL_WIN#${LEAF}\\}"
     done
+
+    printf '%q' "${ABS_WIN}"
+    return $EXIT_SUCCESS
 }
 
 ls_wine_drives() {
