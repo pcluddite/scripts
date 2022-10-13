@@ -5,61 +5,61 @@ if [[ "$COMMON_VARGS" = 'Y' ]]; then
 fi
 
 vargs_sanitize() {
-    local POSITIONAL=()
-    local OUTVAR=
+    local __POSITIONAL=()
+    local __OUTVAR=
 
     if [[ "$1" = ':'* ]]; then
-        OUTVAR="${1#:}"
-        declare -n +g SANITIZED="$OUTVAR"
+        __OUTVAR="${1#:}"
+        declare -ng __SANITIZED="$__OUTVAR"
         shift
     else
-        declare -a +g SANITIZED
+        declare -ag __SANITIZED
     fi
 
     assert_arg_num 1 "$@" || return $EXIT_FAILURE
 
     while [[ $# -gt 0 ]]; do
-        local NAME=''
-        local VALUE=''
+        local __NAME=''
+        local __VALUE=''
         case $1 in
             --)
                 shift
                 break
                 ;;
             -*=*)
-                NAME="${1%%=*}"
-                VALUE="${1#*=}"
+                __NAME="${1%%=*}"
+                __VALUE="${1#*=}"
                 ;;
             -*)
-                NAME="$1"
+                __NAME="$1"
                 if [[ "$2" != '-'* ]] && [[ "$2" != '' ]]; then
-                    VALUE="$2"
+                    __VALUE="$2"
                     shift
                 fi
                 ;;
             *)
-                POSITIONAL+=("$1")
+                __POSITIONAL+=("$1")
                 ;;
         esac
         
-        if [[ "$NAME" != '' ]]; then
-            SANITIZED+=("${NAME}")
-            SANITIZED+=("${VALUE}")
+        if [[ "${__NAME}" != '' ]]; then
+            __SANITIZED+=("${__NAME}")
+            __SANITIZED+=("${__VALUE}")
         fi
         shift
     done
 
     if [[ $# -gt 0 ]]; then
-        POSITIONAL+=("$@")
+        __POSITIONAL+=("$@")
     fi
 
-    if [[ ${#POSITIONAL[@]} -gt 0 ]]; then
-        SANITIZED+=('--')
-        SANITIZED+=("${POSITIONAL[@]}")
+    if [[ ${#__POSITIONAL[@]} -gt 0 ]]; then
+        __SANITIZED+=('--')
+        __SANITIZED+=("${__POSITIONAL[@]}")
     fi
 
-    if [[ $OUTVAR = '' ]]; then
-        arr_print "${SANITIZED[@]}"
+    if [[ "${__OUTVAR}" = '' ]]; then
+        arr_print "${__SANITIZED[@]}"
     fi
 }
 
