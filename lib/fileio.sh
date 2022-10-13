@@ -51,6 +51,21 @@ unlink_rm() {
     done
 }
 
+wine_canonical() {
+    assert_arg_num 1 "$@" || return $EXIT_FAILURE
+    local WINEPREFIX="${WINEPREFIX:-${HOME}/.wine}"
+    local WIN_PATH="$1"
+    while [[ $# -gt 0 ]]; do
+        local WIN_PATH=$(env WINEPREFIX="$WINEPREFIX" wine c:\\windows\\system32\\cmd.exe /c "cd ${WIN_PATH} & cd")
+        if [[ $? -eq 0 ]]; then
+            printf '%s' "${WIN_PATH}"
+        else
+            return $EXIT_FAILURE
+        fi
+        shift
+    done
+}
+
 ls_wine_drives() {
     if [[ $# -eq 0 ]]; then
         arr :ARGS path_cannonical "${WINEPREFIX:=${HOME}/.wine}"
@@ -118,6 +133,38 @@ path_wine() {
     done
 
     printf '%s\\%s' "${WIN_BASE}" "${WIN_PATH}"
+}
+
+return $EXIT_SUCCESS
+
+path_unix() {
+    assert_arg_num -1 "$@" || return $EXIT_FAILURE
+
+    local WINEPREFIX="${WINEPREFIX:-$HOME/.wine}"
+    local WIN_PATH=$(wine_canonical "$1") || return $?
+    local NIX_PATH=
+
+    while read -r DRIVE && [[ "${NIX_PATH}" = '' ]]; do
+        local DRIVE_LETTER="${DRIVE%%\\*}"
+        local DRIVE_PATH="$(readlink -f "${DRIVE#*\\ }")"
+        if [[ "${WIN_PATH^^}" = "${DRIVE_LETTER^^}"* ]]; then
+            NIX_PATH="${DRIVE_PATH}"
+            WIN_PATH="${WIN_PATH:${#DRIVE_LETTER}}"
+        fi
+    done < <(ls_wine_drives "${WINEPREFIX}")
+
+    if [[ "${WIN_PATH}" = '\'* ]]; then
+        WIN_PATH="${WIN_PATH:1}"
+    fi
+    echo "'this is a test${WIN_PATH} '"
+    return
+
+    while [[ "${WIN_PATH}" != '' ]]; do
+        NIX_PATH="${NIX_PATH}/${WIN_PATH%%\\*}"
+        WIN_PATH="${WIN_PATH#\\}"
+    done
+
+    printf '%s' "${NIX_PATH}"
 }
 
 COMMON_FILEIO='Y'
