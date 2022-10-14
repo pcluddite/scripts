@@ -67,7 +67,7 @@ infof() {
 }
 
 errorf() {
-    infof --prefix "${SCRIPT_NAME}: ERROR:" "$@" 1>&2
+    infof --prefix "${SCRIPT_NAME}: " "$@" 1>&2
 }
 
 return_error() {
