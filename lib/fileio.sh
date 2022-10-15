@@ -9,14 +9,14 @@ is_defined() {
     command -v "$1" &> /dev/null
 }
 
-next_no_exist() {
+file_next_index() {
     assert_arg_num -1 "$@" || return $EXIT_FAILURE
-    if [[ -f "$1" ]]; then
+    if [[ -e "$1" ]]; then
         local EXT="${1##*.}"
         local DIR_PATH=$(dirname "$1")
         local FILE_NAME=$(basename "$1" ".${EXT}")
         local IDX=1
-        while [[ -f "${DIR_PATH}/${FILE_NAME}-${IDX}.${EXT}" ]]; do
+        while [[ -e "${DIR_PATH}/${FILE_NAME}-${IDX}.${EXT}" ]]; do
             IDX=$(( $IDX + 1 ))
         done
         printf '%s/%s-%d.%s\n' "$DIR_PATH" "$FILE_NAME" $IDX "$EXT"
