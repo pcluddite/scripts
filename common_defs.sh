@@ -165,7 +165,7 @@ assert_root() {
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         ARRAY)
-            . "${LIB_DIR}/string.sh"
+            . "${LIB_DIR}/array.sh"
             ;;
         FILEIO)
             . "${LIB_DIR}/fileio.sh"

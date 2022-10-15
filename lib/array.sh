@@ -65,18 +65,27 @@ map_print() {
 }
 
 arr_print() {
-    assert_arg_num -1 "$@" || return $EXIT_FAILURE
-    declare -n __INVAR="${1#:}" || return $?
-    assert_arr __INVAR || return $EXIT_FAILURE
+    if [[ $# -gt 0 ]]; then
+        if [[ "$1" = '--' ]]; then
+            shift
+        elif [[ "$1" = ':'* ]]; then
+            assert_arg_num -1 "$@" || return $EXIT_FAILURE
+            declare -n __INVAR="${1#:}" || return $?
+            assert_arr __INVAR || return $EXIT_FAILURE
 
-    set -- "${!__INVAR[@]}"
+            set -- "${!__INVAR[@]}"
 
-    printf '('
-    [[ $# -gt 0 ]] && printf ' %q ' "$@"
-    printf ')'
+            printf '('
+            [[ $# -gt 0 ]] && printf ' %q ' "$@"
+            printf ')'
+            return $EXIT_SUCCESS
+        fi
+    fi
+    printf '%q' "$1" && shift
+    [[ $# -gt 0 ]] && printf ' %q' "$@"
 }
 
-read_arr() {
+arr_read() {
     assert_arg_num 1 "$@" || return $EXIT_FAILURE
 
     local __OUTVAR="$1"
@@ -146,6 +155,24 @@ read_arr() {
             fi
         fi
     fi
+}
+
+arr_sort() {
+    if [[ $# -gt 0 ]]; then
+        if [[ "$1" = '--' ]]; then
+            shift
+        elif [[ "$1" = ':'* ]]; then
+            assert_arg_num -1 "$@" || return $EXIT_FAILURE
+            declare -n __SORTED="${1#:}" || return $?
+            assert_arr __SORTED || return $EXIT_FAILURE
+
+            set -- "${__SORTED[@]}"
+        fi
+    fi
+
+    local IFS=$'\n'
+    local __SORTED=($(sort <<< "$*")) || return $?
+    arr_print "${__SORTED[@]}"
 }
 
 COMMON_ARRAY='Y'
