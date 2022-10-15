@@ -4,6 +4,10 @@ if [[ "$COMMON_FILEIO" = 'Y' ]]; then
     return $EXIT_SUCCESS
 fi
 
+if [[ "${COMMON_ARRAY}" != 'Y' ]]; then
+    . "${LIB_DIR}"/array.sh
+fi
+
 is_defined() {
     assert_arg_num -1 "$@" || return $EXIT_FAILURE
     command -v "$1" &> /dev/null
@@ -131,9 +135,9 @@ wine_canonical() {
 
 ls_wine_drives() {
     if [[ $# -eq 0 ]]; then
-        arr :ARGS path_canonical "${WINEPREFIX:=${HOME}/.wine}"
+        arr_read :ARGS path_canonical "${WINEPREFIX:=${HOME}/.wine}"
     else
-        arr :ARGS path_canonical "$@"
+        arr_read :ARGS path_canonical "$@"
     fi
 
     set -- "${ARGS[@]}"
