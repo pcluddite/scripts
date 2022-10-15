@@ -133,7 +133,7 @@ printf 'Name=%s\n' "$ENTRY_NAME"
 printf 'Exec=env WINEPREFIX="%q/.wine" wine %s\n' "$HOME" "${WIN_PATH//\\/\\\\}"
 printf 'Type=Application\n'
 printf 'StartupNotify=%s\n' "$ENTRY_NOTIFY"
-printf 'Path=%s\n' "$(path2unix "$(printf '%b' "$WIN_PATH")")"
+printf 'Path=%s\n' "$(eval path2unix $WIN_PATH)"
 printf 'Icon=%s\n' "$ENTRY_ICON"
 printf 'StartupWMClass=%s\n' "$EXE_NAME"
 printf 'Comment=%s\n' "$ENTRY_COMMENT"
