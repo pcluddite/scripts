@@ -1,73 +1,12 @@
 #!/bin/bash
 
-if [[ "$COMMONDEFS" = '' ]]; then
-    export COMMONDEFS="$(dirname ${BASH_SOURCE[0]})/common_defs.sh"
+if [[ ! -v COMMONDEFS ]]; then
+    COMMONDEFS="$(dirname "$0")/common_defs.sh"
 fi
 
-if ! . "$COMMONDEFS" STRING FILEIO ERREXIT; then
-    return 1
+if ! . "${COMMONDEFS}" FILEIO STRING ERREXIT; then
+    return $EXIT_FAILURE
 fi
-
-DRIVE_C="${HOME}/.wine/drive_c"
-DOSDRIVE_C="${HOME}/.wine/dosdevices/c:"
-
-win_base() {
-    local NIX_PATH="$1"
-    local WINE_HOME="${DRIVE_C}/users/${USER}"
-    
-    for FILE in "$WINE_HOME"/*; do
-        if [[ -d "${FILE}" && -L "${FILE}" ]]; then
-            local DIR_NAME="$(basename "${FILE}")"
-            local LINK_PATH=$(readlink "${FILE}")
-            if [[ "${NIX_PATH}" = "${LINK_PATH}"* ]]; then
-                printf '%s' "C:\\users\\${USER}\\${DIR_NAME}"
-                return $EXIT_SUCCESS
-            fi
-        fi
-    done
-
-    if [[ "${NIX_PATH}" = "${DRIVE_C}"* ]] || [[ "${NIX_PATH}" = "${DOSDRIVE_C}"* ]]; then
-        printf '%s' 'C:'
-        return $EXIT_SUCCESS
-    fi
-
-
-    printf '%s' 'Z:'
-    return $EXIT_SUCCESS
-}
-
-win_path() {
-    local NIX_PATH="$(dirname "$1")"
-    local WIN_PATH="$(basename "$1")"
-    local WIN_BASE="$(win_base "$NIX_PATH")"
-
-    while [[ "${NIX_PATH}" != '/' && "${NIX_PATH}" != 'z:' ]] && \
-          [[ "${NIX_PATH}" != "${DRIVE_C}" && "${NIX_PATH}" != "${DOSDRIVE_C}" ]]; do
-        WIN_PATH="$(basename "${NIX_PATH}")\\${WIN_PATH}"
-        NIX_PATH=$(dirname "${NIX_PATH}")
-    done
-
-    WIN_PATH="${WIN_BASE}\\${WIN_PATH:$(( ${#WIN_BASE} - 2 ))}"
-
-    printf '%q' "${WIN_PATH}"
-    return $EXIT_SUCCESS
-}
-
-nix_path() {
-    local WIN_PATH="$(printf '%b' "$1")"
-    local NIX_PATH=''
-    if [[ "$WIN_PATH" = 'C:'* ]]; then
-        local BACKSLASH='\\'
-        local SLASH='/'
-        NIX_PATH="${WIN_PATH//${BACKSLASH}/${SLASH}}"
-        NIX_PATH="$(lower "${NIX_PATH:0:1}")${NIX_PATH:1}"
-        NIX_PATH="$(dirname "$NIX_PATH")"
-    else
-        NIX_PATH="z:${EXE_BASE}"
-    fi
-    NIX_PATH="${HOME}/.wine/dosdevices/${NIX_PATH}"
-    printf "%s" "$NIX_PATH"
-}
 
 wineico() {
     local DEEPEST=0
@@ -164,15 +103,17 @@ elif [[ ! -f "$EXE_FILE" ]]; then
     exit_error "'$EXE_FILE' does not exist"
 fi
 
-EXE_FILE="$(cannonicalize "$EXE_FILE")"
+EXE_FILE="$(path_canonical "$EXE_FILE")"
 
 if [[ "$ENTRY_NAME" = '' ]]; then
     ENTRY_NAME="$( basename "$EXE_FILE" ".${EXE_FILE##*.}" )"
 fi
 
-WIN_PATH="$(win_path "$EXE_FILE")"
 EXE_NAME="$(basename "$EXE_FILE")"
 EXE_BASE="$(dirname "$EXE_FILE")"
+WIN_PATH=
+
+printf -v WIN_PATH '%q' "$(path2wine "$EXE_FILE")"
 
 if [[ "$ICON_SW" = 'Y' ]]; then
     ICON_NAME="$(wineico "$EXE_FILE" "$ENTRY_NAME")"
@@ -192,7 +133,7 @@ printf 'Name=%s\n' "$ENTRY_NAME"
 printf 'Exec=env WINEPREFIX="%q/.wine" wine %s\n' "$HOME" "${WIN_PATH//\\/\\\\}"
 printf 'Type=Application\n'
 printf 'StartupNotify=%s\n' "$ENTRY_NOTIFY"
-printf 'Path=%s\n' "$(nix_path "$WIN_PATH")"
+printf 'Path=%s\n' "$(path2unix "$(printf '%b' "$WIN_PATH")")"
 printf 'Icon=%s\n' "$ENTRY_ICON"
 printf 'StartupWMClass=%s\n' "$EXE_NAME"
 printf 'Comment=%s\n' "$ENTRY_COMMENT"
