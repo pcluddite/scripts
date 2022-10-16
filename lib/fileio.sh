@@ -43,6 +43,14 @@ unlink_rm() {
     done
 }
 
+mkcd() {
+    assert_arg_num -1 "$1" || return $EXIT_FAILURE
+    if [[ -e "$1" ]]; then
+        mkdir -p -- "$1" || return $EXIT_FAILURE
+    fi
+    cd -P -- "$1"
+}
+
 path_canonical() {
     assert_arg_num 1 "$@" || return $EXIT_FAILURE
     local NIX_PATH="$PWD"
