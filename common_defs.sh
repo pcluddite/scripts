@@ -8,7 +8,9 @@ fi
 SCRIPT_NAME="$(basename -- "$0")"
 SCRIPT_DIR=$(dirname -- $(readlink -f -- "$0"))
 COMMON_DIR=$(dirname -- "${COMMONDEFS}")
-LIB_DIR="${COMMON_DIR}/lib"
+
+BIN_DIR="${BIN_DIR:-${COMMON_DIR}/bin}"
+LIB_DIR="${LIB_DIR:-${COMMON_DIR}/lib}"
 
 EXIT_FAILURE=1
 EXIT_ERROR=$EXIT_FAILURE

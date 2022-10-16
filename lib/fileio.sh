@@ -44,8 +44,8 @@ unlink_rm() {
 }
 
 mkcd() {
-    assert_arg_num -1 "$1" || return $EXIT_FAILURE
-    if [[ -e "$1" ]]; then
+    assert_arg_num -1 "$@" || return $EXIT_FAILURE
+    if [[ ! -e "$1" ]]; then
         mkdir -p -- "$1" || return $EXIT_FAILURE
     fi
     cd -P -- "$1"
