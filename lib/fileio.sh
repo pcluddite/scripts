@@ -235,4 +235,15 @@ path2unix() {
     printf '%s' "${NIX_PATH}"
 }
 
+pretty_path() {
+    while [[ $# -gt 0 ]]; do
+        if [[ "$1" = "${HOME}"* ]]; then
+            printf '~%s\n' "${1#${HOME}}"
+        else
+            printf '%s\n' "$1"
+        fi
+        shift
+    done
+}
+
 COMMON_FILEIO='Y'
