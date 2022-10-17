@@ -5,7 +5,7 @@ if [[ ! -v COMMONDEFS ]]; then
 fi
 
 if ! . "${COMMONDEFS}" STDIO ERREXIT; then
-    return 1
+    exit 1
 fi
 
 DESKTOP="${HOME}/Desktop"

@@ -5,7 +5,7 @@ if [[ ! -v COMMONDEFS ]]; then
 fi
 
 if ! . "${COMMONDEFS}" ARRAY STDIO FILEIO ERREXIT; then
-    return 1
+    exit 1
 fi
 
 CFG_FILE="${HOME}/.dosbox/dosbox-0.74-3.conf"
