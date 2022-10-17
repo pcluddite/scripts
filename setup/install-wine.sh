@@ -5,10 +5,10 @@ if [[ ! -v "${COMMONDEFS}" ]]; then
 fi
 
 if ! . "${COMMONDEFS}" FILEIO ERREXIT; then
-    return $EXIT_FAILURE
+    exit 1
 fi
 
-if ! is_defined 'wine' || ! is_defined cabextract; then
+if ! is_defined 'wine' || ! is_defined 'cabextract'; then
     assert_root
     dnf install wine cabextract
 fi
