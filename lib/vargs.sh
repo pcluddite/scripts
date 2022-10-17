@@ -10,7 +10,8 @@ vargs_sanitize() {
 
     if [[ "$1" = ':'* ]]; then
         __OUTVAR="${1#:}"
-        declare -ng __SANITIZED="$__OUTVAR"
+        assert_identifier "${__OUTVAR}" || return $?
+        declare -ng __SANITIZED="${__OUTVAR}" || return $?
         shift
     else
         declare -ag __SANITIZED
@@ -63,86 +64,65 @@ vargs_sanitize() {
     fi
 }
 
-varg_contract_parse() {
-    assert_arg_num -1 "$@"
+varg_parse_contract() {
+    assert_arg_num 1 "$@" || return $?
 
-    local FORMATTED="$1"
-    local NAME="${FORMATTED%%=*}"
-    local OPTIONAL='N'
-
-    eval local DEFAULT=${FORMATTED#*=}
-
-    if [[ "${NAME}" = '['* ]]; then
-        NAME="${NAME:1}"
-        OPTIONAL='Y'
-    fi
-    if [[ "${NAME}" = *']' ]]; then
-        NAME="${NAME%%]*}"
-        OPTIONAL='Y'
+    local __OUTVAR=
+    if [[ "$1" = ':'* ]]; then
+        __OUTVAR="${1#:}"
+        assert_identifier "${__OUTVAR}" || return $?
+        declare -gn __CONTRACT="${__OUTVAR}" || return $?
+        shift
+    else
+        declare -A __CONTRACT=
     fi
 
-    local POSITION=0
-    if [[ "${NAME}" = *'#'* ]]; then
-        POSITION="${NAME#*#}"
-        if [[ "${POSITION}" = *','* ]]; then
-            POSITION="${POSITION%%,*}"
+    assert_arg_num -1 "$@" || return $?
+
+    local __RAW="$1"
+    local __OPTNAME="${__RAW%%=*}"
+    local __OPTSW='N'
+    local __DEFAULT="${__RAW#*=}"
+
+    if [[ "${__OPTNAME}" = '['* ]]; then
+        __OPTNAME="${__OPTNAME:1}"
+        __OPTSW='Y'
+    fi
+    if [[ "${__OPTNAME}" = *']' ]]; then
+        __OPTNAME="${__OPTNAME%%]*}"
+        __OPTSW='Y'
+    fi
+
+    local __POSITION=0
+    if [[ "${__OPTNAME}" = *'#'* ]]; then
+        __POSITION="${__OPTNAME#*#}"
+        if [[ "${__POSITION}" = *','* ]]; then
+            __POSITION="${__POSITION%%,*}"
         fi
-        NAME="${NAME/#${POSITION}/}"
-        if [[ $(expr "$POSITION" + 0 2> /dev/null) != "$POSITION" ]]; then
-            write_error "unexpected token '${POSITION}' in \"${FORMATTED}\""
-            write_error 'position must be an integer'
+        __OPTNAME="${__OPTNAME/#${__POSITION}/}"
+        if ! is_integer "${__POSITION}"; then
+            errorf 'unexpected token %s in "%s": position must be an integer\n' "'${__POSITION}'" "${__RAW}"
             return $EXIT_FAILURE
         fi
     fi
 
-    local VARG_NAME=
-    local SHORT_NAME=
-    if [[ "${NAME}" = *','* ]]; then
-        SHORT_NAME="${NAME#*,}"
-        NAME="${NAME%%,*}"
-        if [[ "${SHORT_NAME}" = *','* ]]; then
-            VARG_NAME="${SHORT_NAME#*,}"
-            SHORT_NAME="${SHORT_NAME%%,*}"
+    local __VARNAME=
+    local __SHORTNAME=
+    if [[ "${__OPTNAME}" = *','* ]]; then
+        __SHORTNAME="${__OPTNAME#*,}"
+        __OPTNAME="${__OPTNAME%%,*}"
+        if [[ "${__SHORTNAME}" = *','* ]]; then
+            __VARNAME="${__SHORTNAME#*,}"
+            __SHORTNAME="${__SHORTNAME%%,*}"
         fi
     fi
 
-    if [[ "${VARG_NAME}" = '' ]]; then
-        VARG_NAME="VARG_${NAME}"
+    if [[ "${__VARNAME}" = '' ]]; then
+        __VARNAME="VARG_${__OPTNAME}"
     fi
 
-    local CONTRACT=(--name $NAME --short $SHORT_NAME --varname $VARG_NAME --position $POSITION --optional $OPTIONAL --default "${DEFAULT}")
-    arr_print "${CONTRACT[@]}"
-}
-
-vargs_opt() {
-    assert_arg_num 2 "$@" || return $EXIT_FAILURE
-
-    local SEARCH_OPT="$1"
-    shift
-
-    if [[ "${SEARCH_OPT}" = *'=' ]]; then
-        local ARGS=()
-        vargs_sanitize :ARGS "$@"
-        SEARCH_OPT="${SEARCH_OPT%%=*}"
-
-        set -- "${ARGS[@]}"
-    fi
-
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            --)
-                shift
-                break
-                ;;
-            "${SEARCH_OPT}")
-                shift
-                printf '%q' "$1"
-                return $EXIT_SUCCESS
-                ;;
-        esac
-        shift
-    done
-    return $EXIT_FAILURE
+    declare -A __CONTRACT=([NAME]="${__OPTNAME}" [SHORT]="${__SHORTNAME}" [VAR]="${__VARNAME}" [POSITION]="${__POSITION}" [OPT]="${__OPTSW}" [DEFAULT]="${__DEFAULT}")
+    arr_print
 }
 
 return $EXIT_SUCCESS
