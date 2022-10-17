@@ -1,11 +1,11 @@
 #!/bin/bash
 
-if [[ ! -v "${COMMONDEFS}" ]]; then
+if [[ ! -v COMMONDEFS ]]; then
     COMMONDEFS="$(dirname "$0")/../common_defs.sh"
 fi
 
 if ! . "${COMMONDEFS}" ERREXIT; then
-    return $EXIT_FAILURE
+    return 1
 fi
 
 assert_root

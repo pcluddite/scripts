@@ -1,11 +1,11 @@
 #!/bin/bash
 
-if [[ ! -v "${COMMONDEFS}" ]]; then
+if [[ ! -v COMMONDEFS ]]; then
     COMMONDEFS="$(dirname "$0")/../common_defs.sh"
 fi
 
 if ! . "${COMMONDEFS}" ARRAY STDIO FILEIO ERREXIT; then
-    return $EXIT_FAILURE
+    return 1
 fi
 
 CFG_FILE="${HOME}/.dosbox/dosbox-0.74-3.conf"

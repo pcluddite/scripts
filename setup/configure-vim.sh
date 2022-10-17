@@ -1,11 +1,11 @@
 #!/bin/bash
 
-if [[ ! -v "${COMMONDEFS}" ]]; then
+if [[ ! -v COMMONDEFS ]]; then
     COMMONDEFS="$(dirname "$0")/../common_defs.sh"
 fi
 
 if ! . "${COMMONDEFS}" STDIO ERREXIT; then
-    exit 1
+    return 1
 fi
 
 VIMRC="$HOME/.vimrc"
