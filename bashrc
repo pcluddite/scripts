@@ -35,5 +35,5 @@ alias ustatus='systemctl --user status'
 alias screen='tmux attach -t'
 
 if [[ -e "${wine_c}/Program Files/Notepad++/notepad++.exe" ]]; then
-    alias notepad='env WINEPREFIX="${HOME}/.wine" wine C:\\\\Program\\ FilesNotepad++\\\\notepad++.exe'
+    alias notepad='env WINEPREFIX="${HOME}/.wine" wine C:\\Program\ Files\\Notepad++\\notepad++.exe'
 fi
