@@ -16,3 +16,7 @@ if command -v 'wine' &> /dev/null; then
         fi
     done
 fi
+
+export ONEDRIVE="${HOME}/OneDrive"
+export WIN31="${ONEDRIVE}/Program Files/PortableApps/DOSBoxPortable/files/win"
+export WIN311="${WIN31}"
