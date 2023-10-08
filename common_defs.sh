@@ -16,6 +16,12 @@ EXIT_FAILURE=1
 EXIT_ERROR=$EXIT_FAILURE
 EXIT_SUCCESS=0
 
+if [[ "${OS_VERSION}" = '' ]] && source '/etc/os-release'; then
+	OS_VERSION="${ID}-${VERSION_ID}"
+fi
+
+export OS_VERSION="${OS_VERSION:-36}"
+
 write_error() {
     printf '%s: %s\n' "${SCRIPT_NAME}" "$*" 1>&2
 }
