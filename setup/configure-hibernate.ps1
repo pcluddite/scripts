@@ -40,3 +40,27 @@ if (Test-Path $SwapFile) {
     Write-Verbose "Subvolume ${SwapVolume} created"
 }
 
+New-Item -Path $SwapFile -ItemType File
+# Disable Copy On Write on the file
+chattr +C $SwapFile
+fallocate --length 24G $SwapFile
+chmod 600 $SwapFile 
+mkswap $SwapFile
+
+$RESUME_PATH='/etc/dracut.conf.d/resume.conf'
+
+$FIELD='add_dracutmodules'
+$VALUE='resume'
+$Lines=@(Get-Content -Path $RESUME_PATH)
+foreach($Line in $Lines) {
+    if($Line -like "${FIELD}+=*") {
+        if ($Line -notlike "${FIELD}+=`"*${VALUE}*`"") {
+            $OLDVAL=$Line.Substring($FIELD.Length + 2) # 2 for +=
+            $OLDVAL=$OLDVAL.Substring(1, $OLDVAL.LastIndexOf('"') - 1).Trim()
+            $VALUE="${VALUE} ${OLDVAL}"
+        }
+        break
+    }
+}
+
+Write-Output "${FIELD}+=`" ${VALUE} `"" >> $RESUME_PATH
