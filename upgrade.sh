@@ -8,7 +8,9 @@ if ! . "${COMMONDEFS}"; then
     exit 1
 fi
 
-assert_root
+if ! assert_root; then
+    exit 1
+fi
 
 dnf check-update --refresh
 EXIT_STATUS=$?
@@ -30,7 +32,10 @@ echo "Preparing to upgrade to ${NAME} ${NEXT_VERSION}"
 
 if dnf install dnf-plugin-system-upgrade; then
     if dnf system-upgrade download --releasever="${NEXT_VERSION}"; then
-        dnf system-upgrade reboot
+        YN=$(prompt_yesno -p='Upgrade packages downloaded. Reboot?')
+        if [[ "$YN" == 'Y' ]]; then
+            dnf system-upgrade reboot
+        fi
     fi
 fi
 
