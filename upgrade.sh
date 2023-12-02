@@ -4,7 +4,7 @@ if [[ ! -v COMMONDEFS ]]; then
     COMMONDEFS="$(dirname "$0")/common_defs.sh"
 fi
 
-if ! . "${COMMONDEFS}"; then
+if ! . "${COMMONDEFS}" STDIO; then
     exit 1
 fi
 
