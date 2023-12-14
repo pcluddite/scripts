@@ -63,8 +63,8 @@ if (!(Test-Path $OutPath)) {
 $RSS = (Invoke-RestMethod $FeedUrl | where { 
         $PubDate = [DateTime]$_.pubDate
         $_.episodeType -eq 'full' `
-            -and ($Year -le 0 -or $PubDate.Year -eq $Year) `
-            -and ($Month -le 0 -or $PubDate.Month -eq $Month) 
+            -and ($Year -le 0 -or $PubDate.Year -ge $Year) `
+            -and ($Month -le 0 -or $PubDate.Month -ge $Month) 
     }
 )
 [Array]::Reverse($RSS)
