@@ -41,18 +41,15 @@ function Move-Recycle() {
         [Parameter(Mandatory)]
         [FileSystemInfo]$Original,
         [Parameter(Mandatory)]
-        [FileSystemInfo]$Duplicate
+        [FileSystemInfo]$Duplicate,
+        [Parameter(Mandatory)]
+        [FileSystemInfo]$Older
     )
     try {
-        $IsOriginal=($Duplicate.LastWriteTime -gt $Original.LastWriteTime)
-        if ($IsOriginal) {
-            $RecyclePath=$Original.FullName
-        } else {
-            $RecyclePath=$Duplicate.FullName
-        }
+        $RecyclePath=$Older.FullName
         Write-Host "Recycling '${RecyclePath}'..."
         [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($RecyclePath, 'OnlyErrorDialogs', 'SendToRecycleBin')
-        if ($IsOriginal) {
+        if ($Original -eq $Older) {
             $PSCmdlet.WRiteVerbose("Moving '$($Duplicate.FullName)' to '${RecyclePath}")
             Move-Item -Path $Duplicate.FullName -Destination $RecyclePath
         }
@@ -61,14 +58,13 @@ function Move-Recycle() {
     }
 }
 
-function Get-DuplicateItems() {
+function Find-Duplicates() {
     param(
         [Parameter(Mandatory, Position=0)]
         [string]$Path,
         [Parameter(Mandatory,Position=1)]
         [string]$MachineName
     )
-    $PSCmdlet.WRiteVerbose("Searching in $([Path]::GetFullPath($Path))...")
     $EscapedMachine=[Regex]::Escape($MachineName)
     Get-ChildItem -Path $Path -File | where { $_.BaseName -imatch "^(.+)\-${EscapedMachine}(\-\d+)*`$" } | % {
         $OriginalName=$Matches[1]
@@ -82,6 +78,7 @@ function Get-DuplicateItems() {
             @{
                 Original=$Original
                 Duplicate=$_
+                Older=$(if ($_.LastWriteTime -gt $Original.LastWriteTime) { $Original } else { $_ })
             }
         } else {
             $PSCmdlet.WriteWarning("'${OriginalPath}' does not exist")
@@ -89,12 +86,31 @@ function Get-DuplicateItems() {
     }
 }
 
-$dupes=@(Get-ChildItem -Path $Path -Directory -Recurse | % {
-    Get-DuplicateItems -Path $_ -MachineName $MachineName
+$RootPath=[Path]::GetFullPath($Path)
+
+Write-Host "Finding and removing duplicates for ${MachineName} in '${RootPath}'"
+
+$dirs=@(Get-ChildItem -Path $RootPath -Directory -Recurse)
+$dirs+=(Get-Item $RootPath)
+
+$i = 0
+$dupes=@($dirs | % {
+    Write-Progress -Activity 'OneDrive search status' `
+        -Status "Searching '$($_.FullName.Substring($RootPath.Length % $_.FullName.Length))'" `
+        -PercentComplete ([double]$i++ / $dirs.Length * 100)
+    Find-Duplicates -Path $_ -MachineName $MachineName
 })
 
-Write-Host "$($dupes.Count) duplicate(s) were found"
+Write-Host "$($dupes.Length) duplicate(s) were found"
 
-foreach($dupe in $dupes) {
-    Move-Recycle -Original $dupe['Original'] -Duplicate $dupe['Duplicate']
+for($i = 0; $i -lt $dupes.Length; ++$i) {
+    $dupe = $dupes[$i]
+    Write-Progress -Activity 'Recycling duplicates progress' `
+        -Status "Recycling '$($dupe['Older'].Name)' ($($i + 1) of $($dupes.Length))" `
+        -PercentComplete ([double]$i / $dupes.Length * 100)
+    Move-Recycle -Original $dupe['Original'] -Duplicate $dupe['Duplicate'] -Older $dupe['Older']
+}
+
+if ($dupes.Length -gt 0) {
+    Write-Host 'Done'
 }
