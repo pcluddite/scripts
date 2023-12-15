@@ -27,7 +27,7 @@ using namespace System.IO
 
 param(
     [Parameter(Position=0)]
-    [string]$FeedUrl = 'https://feeds.megaphone.fm/rizzutoshow',
+    [string]$Url = 'https://feeds.megaphone.fm/rizzutoshow',
     [Parameter(Position=1)]
     [string]$OutPath = (Join-Path $PSScriptRoot 'Rizzuto Show'),
     [Parameter(Position=2)]
@@ -54,20 +54,42 @@ function Get-FileName {
     return "${Title}${ext}" -replace $INVALID_CHARS, '%'
 }
 
-# Create the download folder if it doesn't exist
-if (!(Test-Path $OutPath)) {
-    New-Item -ItemType Directory -Path $OutPath | Out-Null
+function Out-Truncated {
+    param(
+        [Parameter(Mandatory,ValueFromPipeline,Position=0)]
+        [psobject]$InputObject,
+        [Parameter(Mandatory,Position=1)]
+        [int]$Width
+    )
+    $str = ($InputObject | Out-String -NoNewline)
+    if ($str.Length -gt $Width) {
+        return "$($str.Substring(0, $Width - 3))..."
+    }
+    return $str
 }
 
-# Download the RSS feed
-$RSS = (Invoke-RestMethod $FeedUrl | where { 
-        $PubDate = [DateTime]$_.pubDate
-        $_.episodeType -eq 'full' `
-            -and ($Year -le 0 -or $PubDate.Year -ge $Year) `
-            -and ($Month -le 0 -or $PubDate.Month -ge $Month) 
-    }
-)
-[Array]::Reverse($RSS)
+# Create the download folder if it doesn't exist
+if (!(Test-Path -LiteralPath $OutPath)) {
+    New-Item -ItemType Directory -Path $OutPath -ErrorAction Stop | Out-Null
+}
+
+# Download and filter the RSS feed
+try {
+    $RSS = (Invoke-RestMethod $Url | where { 
+            $PubDate = [DateTime]$_.pubDate
+            $_.episodeType -eq 'full' `
+                -and ($Year -le 0 -or $PubDate.Year -ge $Year) `
+                -and ($Month -le 0 -or $PubDate.Month -ge $Month) 
+        }
+    )
+    [Array]::Reverse($RSS)
+} catch {
+    Write-Error 'Failed to download and filter RSS Feed'
+    throw $_
+}
+
+$Successful = 0
+$Completed = 0
 
 # Loop through each episode and download it
 foreach ($Episode in $RSS) {
@@ -77,20 +99,35 @@ foreach ($Episode in $RSS) {
     $FileName = Get-FileName -Title ($Episode.title | select -First 1) -Url $Url
     $OutFile = [Path]::Combine($OutPath, "$($PubDate.Year)", "$($PubDate.ToString('MM MMMM'))")
 
-    if (!(Test-Path $OutFile)) {
-        New-Item -ItemType Directory -Path $OutFile | Out-Null
+    if (!(Test-Path -LiteralPath $OutFile)) {
+        New-Item -ItemType Directory -Path $OutFile -ErrorAction Stop | Out-Null
     }
 
     $OutFile = Join-Path $OutFile $FileName
+    Write-Progress -Activity 'Total Podcast Download' `
+        -Status "Downloading '$($Episode.title | Out-Truncated -Width 30)' ($($Completed + 1) out of $($RSS.Length))" `
+        -PercentComplete ([double]$Completed / $RSS.Length * 100)
 
     # Check if the file already exists
-    if (Test-Path $OutFile) {
-        Write-Error "'${OutFile}' already exists"
+    if (Test-Path -LiteralPath $OutFile) {
+        Write-Warning "Skipped '$($Episode.title)' because file already exists in '$([Path]::GetDirectoryName($OutFile))'"
     } else {
         Write-Host "Downloading $($Episode.title) to '${OutFile}'..."
         Invoke-WebRequest $Url -OutFile $OutFile -ErrorAction Inquire
-        Set-ItemProperty -Path $OutFile -Name LastWriteTime -Value $PubDate.ToUniversalTime() -ErrorAction Continue
+        if ($?) {
+            ++$Successful
+            Set-ItemProperty -Path $OutFile -Name LastWriteTime -Value $PubDate.ToUniversalTime() -ErrorAction Continue
+        }
     }
+    ++$Completed
 }
 
-Write-Host "All episodes downloaded successfully!"
+if ($Successful -eq 0) {
+    Write-Host 'No episodes were downloaded'
+} elseif ($Successful -eq $RSS.Length) {
+    Write-Host "All episodes downloaded successfully!"
+} elseif ($Successful -eq 1) {
+    Write-Host "1 episode out of $($RSS.Length) was downloaded"
+} else {
+    Write-Host "${Successful} episodes out of $($RSS.Lenth) were downloaded"
+}
