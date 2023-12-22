@@ -26,9 +26,9 @@
 using namespace System.IO
 
 param(
-    [Parameter(Position=0)]
+    [Parameter(Mandatory,Position=0)]
     [string]$Url = 'https://feeds.megaphone.fm/rizzutoshow',
-    [Parameter(Position=1)]
+    [Parameter(Mandatory,Position=1)]
     [string]$OutPath = (Join-Path $PSScriptRoot 'Rizzuto Show'),
     [Parameter(Position=2)]
     [int]$Year = 0,
@@ -129,5 +129,5 @@ if ($Successful -eq 0) {
 } elseif ($Successful -eq 1) {
     Write-Host "1 episode out of $($RSS.Length) was downloaded"
 } else {
-    Write-Host "${Successful} episodes out of $($RSS.Lenth) were downloaded"
+    Write-Host "${Successful} episodes out of $($RSS.Length) were downloaded"
 }
