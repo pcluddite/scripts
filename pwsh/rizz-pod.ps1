@@ -11,8 +11,10 @@ param(
     [int]$LastPage=148,
     [Parameter(ParameterSetName='csv')]
     [switch]$MediaLinks,
-    [Parameter(Position=3,ParameterSetName='download')]
+    [Parameter(Mandatory,Position=2,ParameterSetName='download')]
     [string]$OutPath,
+    [Parameter(Position=3,ParameterSetName='download')]
+    [string]$CsvPath,
     [Parameter(ParameterSetName='download')]
     [double]$RedownloadSize = 120 # in MB
 )
@@ -130,11 +132,11 @@ function Get-Episode {
         New-Item -ItemType Directory -Path $OutPath -ErrorAction Stop | Out-Null
     }
     $OutFile=Join-Path $OutPath $Filename
-    $FileItem=(Get-Item -Path $OutFile -ErrorAction Ignore)
-    if ($FileItem.Exists -and ($FileItem.Length / 1024 / 1024) -ge $RedownloadSize) {
+    $FileObject=(Get-Item -Path $OutFile -ErrorAction Ignore)
+    if ($FileObject.Exists -and ($FileObject.Length / 1024 / 1024) -ge $RedownloadSize) {
         Write-Warning "Skipped '${Title}' because file already exists in '${OutPath}'"
     } else {
-        if ($FileItem.Exists) {
+        if ($FileObject.Exists) {
             Write-Warning "Redownloading '${Title}' because file is less than ${RedownloadSize} MB"
         }
         Invoke-WebRequest -Uri $Uri -OutFile $OutFile -AllowInsecureRedirect -ErrorAction Inquire
@@ -147,31 +149,40 @@ function Get-Episode {
 $Articles=@()
 
 $TotalPages=$LastPage-$FirstPage+1
-for($Page=$FirstPage; $Page -le $LastPage; ++$Page) {
-    $CompletedPages=$Page - $FirstPage
-    Write-Progress `
-        -Activity 'Gathering links to podcast articles' `
-        -Status "Page $($CompletedPages + 1) of ${TotalPages}" `
-        -PercentComplete ($CompletedPages / $TotalPages * 100)
-    Get-Articles -Page $Page | % { $Articles += $_ }
+
+if ([string]::IsNullOrEmpty($CsvPath)) {
+    for($Page=$FirstPage; $Page -le $LastPage; ++$Page) {
+        $CompletedPages=$Page - $FirstPage
+        Write-Progress `
+            -Activity 'Gathering links to podcast articles' `
+            -Status "Page $($CompletedPages + 1) of ${TotalPages}" `
+            -PercentComplete ($CompletedPages / $TotalPages * 100)
+        Get-Articles -Page $Page | % { $Articles += $_ }
+    }
+} else {
+    $Articles=@(Import-Csv -Path $CsvPath | where { $_.Page -ge $FirstPage -and $_.Page -le $LastPage })
 }
 
 if ([string]::IsNullOrEmpty($OutPath)) {
-    $Count=0
-    $Articles | % {
-        Write-Progress `
-            -Activity 'Gathering download links' `
-            -Status "$Count of $($Articles.Length)" `
-            -PercentComplete ($Count / $Articles.Length * 100)
-        [PSCustomObject]@{
-            Page=$_.Page
-            Title=$_.Title
-            PublishDate=$_.PublishDate
-            Url=$_.Url
-            Downlaod=(if ($MediaLinks) { Get-Mp3Uri -EpisodeUrl $_.Url })
-        }
-        ++$Count
-    } | ConvertTo-Csv > './articles.out.csv'
+    if ($MediaLinks) {
+        $Count=0
+        $Articles | % {
+            Write-Progress `
+                -Activity 'Gathering download links' `
+                -Status "$Count of $($Articles.Length)" `
+                -PercentComplete ($Count / $Articles.Length * 100)
+            [PSCustomObject]@{
+                Page=$_.Page
+                Title=$_.Title
+                PublishDate=$_.PublishDate
+                Url=$_.Url
+                Downlaod=(Get-Mp3Uri -EpisodeUrl $_.Url)
+            }
+            ++$Count
+        } | Export-Csv -Path './articles.out.csv'
+    } else {
+        $Articles | % { $_ } | Export-Csv -Path './articles.out.csv'
+    }
 } else {
     $ErrorActionPreference='Continue'
     
