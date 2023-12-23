@@ -1,7 +1,11 @@
 using namespace System.IO
 param(
-    [Parameter(Mandatory,Position=0)]
-    [int]$Page
+    [Parameter(Position=0)]
+    [int]$FirstPage=1,
+    [Parameter(Position=1)]
+    [int]$LastPage=148,
+    [Parameter(Position=3)]
+    [string]$OutPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -13,6 +17,20 @@ if (-not (Get-Module -ErrorAction Ignore -ListAvailable PSParseHTML)) {
     Install-Module -Scope CurrentUser PSParseHTML -ErrorAction Stop
 }
   
+function Out-Truncated {
+    param(
+        [Parameter(Mandatory,ValueFromPipeline,Position=0)]
+        [psobject]$InputObject,
+        [Parameter(Mandatory,Position=1)]
+        [int]$Width
+    )
+    $str = ($InputObject | Out-String -NoNewline)
+    if ($str.Length -gt $Width) {
+        return "$($str.Substring(0, $Width - 3))..."
+    }
+    return $str
+}
+
 function Get-Filename {
     param (    
         [Parameter(Mandatory)]
@@ -94,8 +112,53 @@ function Get-Episode {
     )
     $Uri=(Get-Mp3Uri $Url)
     $Filename=Get-Filename -Title $Title -Uri $Uri
-    $FullPath=Join-Path $OutPath $Filename
-    Invoke-WebRequest -Uri $Uri -OutFile $FullPath
+    $OutPath=[Path]::Combine($OutPath, "$($PublishDate.Year)", "$($PublishDate.ToString('MM MMMM'))")
+    if (!(Test-Path -LiteralPath $OutPath)) {
+        New-Item -ItemType Directory -Path $OutPath -ErrorAction Stop | Out-Null
+    }
+    $OutFile=Join-Path $OutPath $Filename
+    if (Test-Path -LiteralPath $OutFile) {
+        Write-Warning "Skipped '${Title}' because file already exists in '${OutPath}'"
+    } else {
+        Invoke-WebRequest -Uri $Uri -OutFile $OutFile -ErrorAction Inquire
+        if ($?) {
+            Set-ItemProperty -Path $OutFile -Name LastWriteTime -Value $PublishDate.ToUniversalTime() -ErrorAction Continue
+        }
+    }
 }
 
-Get-Articles -Page $Page
+$Articles=@()
+
+$TotalPages=$LastPage-$FirstPage+1
+for($Page=$FirstPage; $Page -le $LastPage; ++$Page) {
+    $CompletedPages=$Page - $FirstPage
+    Write-Progress `
+        -Activity 'Gathering links to podcast articles' `
+        -Status "Page $($CompletedPages + 1) of ${TotalPages}" `
+        -PercentComplete ($CompletedPages / $TotalPages * 100)
+    Get-Articles -Page $Page | % { $Articles += $_ }
+}
+
+$Failed=0
+$Completed=0
+
+if ([string]::IsNullOrEmpty($OutPath)) {
+    $Articles | ConvertTo-Csv > './articles.csv'
+} else {
+    $ErrorActionPreference='Continue'
+    $Articles | % {
+        Write-Progress -Activity 'Total Podcast Download' `
+            -Status "Downloading '$($_.Title | Out-Truncated -Width 30)' ($($Completed + 1) out of $($Articles.Length))" `
+            -PercentComplete ($Completed / $Articles.Length * 100)
+        try {
+            Get-Episode -Title $_.Title -Url $_.Url -PublishDate $_.PublishDate -OutPath $OutPath
+        } catch {
+            Write-Error "Failed to download '$($_.Title)' from $($_.Url)"
+            Write-Error $_
+            ++$Failed
+        }
+        ++$Completed
+    }
+}
+
+Write-Host "Downloaded $($Completed - $Failed) episode(s) successfully"
