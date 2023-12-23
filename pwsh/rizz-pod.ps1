@@ -130,12 +130,16 @@ function Get-Episode {
         New-Item -ItemType Directory -Path $OutPath -ErrorAction Stop | Out-Null
     }
     $OutFile=Join-Path $OutPath $Filename
-    if ((Test-Path -LiteralPath $OutFile) -and (Get-Item -Path $OutFile).Length -gt ($RedownloadSize * 1024 * 1024)) {
+    $FileItem=(Get-Item -Path $OutFile -ErrorAction Ignore)
+    if ($FileItem.Exists -and ($FileItem.Length / 1024 / 1024) -ge $RedownloadSize) {
         Write-Warning "Skipped '${Title}' because file already exists in '${OutPath}'"
     } else {
+        if ($FileItem.Exists) {
+            Write-Warning "Redownloading '${Title}' because file is less than ${RedownloadSize} MB"
+        }
         Invoke-WebRequest -Uri $Uri -OutFile $OutFile -AllowInsecureRedirect -ErrorAction Inquire
         if ($?) {
-            Set-ItemProperty -Path $OutFile -Name LastWriteTime -Value $PublishDate.ToUniversalTime() -ErrorAction Continue
+            Set-ItemProperty -Path $OutFile -Name LastWriteTime -Value $PublishDate.ToUniversalTime() -ErrorAction Ignore
         }
     }
 }
@@ -164,14 +168,14 @@ if ([string]::IsNullOrEmpty($OutPath)) {
             Title=$_.Title
             PublishDate=$_.PublishDate
             Url=$_.Url
-            Downlaod=(Get-Mp3Uri -EpisodeUrl $_.Url)
+            Downlaod=(if ($MediaLinks) { Get-Mp3Uri -EpisodeUrl $_.Url })
         }
         ++$Count
     } | ConvertTo-Csv > './articles.out.csv'
 } else {
     $ErrorActionPreference='Continue'
     
-    $Failed=0
+    $Failed=@()
     $Completed=0
     
     $Articles | % {
@@ -188,9 +192,23 @@ if ([string]::IsNullOrEmpty($OutPath)) {
         } catch {
             Write-Error "Failed to download '$($Episode.Title)' from $($Episode.Url)"
             Write-Error $_
-            ++$Failed
+            $Failed+=$Episode
         }
         ++$Completed
     }
-    Write-Host "Downloaded $($Completed - $Failed) episode(s) successfully"
+    $Successful=$Completed - $Failed
+    if ($Completed -gt 0) {
+        Write-Host '[' -ForegroundColor Yellow -NoNewline
+        Write-Host 'OK' -ForegroundColor Green -NoNewline
+        Write-Host ']' -ForegroundColor Yellow -NoNewline
+        Write-Host "Downloaded ${Successful} episode(s) successfully"
+    }
+    if ($Failed.Length -gt 0) {
+        Write-Host '[' -ForegroundColor Yellow -NoNewline
+        Write-Host 'FAILED' -ForegroundColor Red  -NoNewline
+        Write-Host ']' -ForegroundColor Yellow
+        Write-Host "Unable to download $($Failed.Length) episode(s):"
+        $Failed | % { Write-Host -Object $_ }
+    }
+    
 }
