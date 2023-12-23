@@ -44,7 +44,7 @@ function Get-Filename {
         $nEnd = $Uri.Length
     }
     $ext = [Path]::GetExtension($Uri.Substring($nStart + 1, $nEnd - $nStart - 1))
-    return "$($Title.Replace("’", "'").Trim())${ext}" -replace $INVALID_CHARS, '%'
+    return "$($Title.Replace("’", "'").Replace("’", "'").Trim())${ext}" -replace $INVALID_CHARS, '%'
 }
 
 function Get-Mp3Uri() {
@@ -122,7 +122,7 @@ function Get-Episode {
     if ((Test-Path -LiteralPath $OutFile) -and (Get-Item -Path $OutFile).Length -gt (120 * 1024 * 1024)) {
         Write-Warning "Skipped '${Title}' because file already exists in '${OutPath}'"
     } else {
-        Invoke-WebRequest -Uri $Uri -OutFile $OutFile -ErrorAction Inquire
+        Invoke-WebRequest -Uri $Uri -OutFile $OutFile -AllowInsecureRedirect -ErrorAction Inquire
         if ($?) {
             Set-ItemProperty -Path $OutFile -Name LastWriteTime -Value $PublishDate.ToUniversalTime() -ErrorAction Continue
         }
