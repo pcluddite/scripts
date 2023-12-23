@@ -44,7 +44,7 @@ function Get-Filename {
         $nEnd = $Uri.Length
     }
     $ext = [Path]::GetExtension($Uri.Substring($nStart + 1, $nEnd - $nStart - 1))
-    return "${Title}${ext}" -replace $INVALID_CHARS, '%'
+    return "$($Title.Trim())${ext}" -replace $INVALID_CHARS, '%'
 }
 
 function Get-Mp3Uri() {
@@ -87,6 +87,8 @@ function Get-Articles {
         # select link node to each article from post-title class
         $LinkNode=$_.SelectSingleNode("//*[@class='post-title']/a")
         return [PSCustomObject]@{
+            Page=$Page
+
             # decode innerText to remove &###;
             Title=[Net.WebUtility]::HtmlDecode($LinkNode.InnerText)
 
@@ -139,26 +141,41 @@ for($Page=$FirstPage; $Page -le $LastPage; ++$Page) {
     Get-Articles -Page $Page | % { $Articles += $_ }
 }
 
-$Failed=0
-$Completed=0
-
 if ([string]::IsNullOrEmpty($OutPath)) {
-    $Articles | ConvertTo-Csv > './articles.csv'
+    $Count=0
+    $Articles | % {
+        Write-Progress `
+            -Activity 'Gathering download links' `
+            -Status "$Count of $($Articles.Length)" `
+            -PercentComplete ($Count / $Articles.Length * 100)
+        [PSCustomObject]@{
+            Page=$_.Page
+            Title=$_.Title
+            PublishDate=$_.PublishDate
+            Url=$_.Url
+            Downlaod=(Get-Mp3Uri -EpisodeUrl $_.Url)
+        }
+        ++$Count
+    } | ConvertTo-Csv > './articles.csv'
 } else {
     $ErrorActionPreference='Continue'
+    
+    $Failed=0
+    $Completed=0
+    
     $Articles | % {
         Write-Progress -Activity 'Total Podcast Download' `
             -Status "Downloading '$($_.Title | Out-Truncated -Width 30)' ($($Completed + 1) out of $($Articles.Length))" `
             -PercentComplete ($Completed / $Articles.Length * 100)
+        $Episode=$_
         try {
-            Get-Episode -Title $_.Title -Url $_.Url -PublishDate $_.PublishDate -OutPath $OutPath
+            Get-Episode -Title $Episode.Title -Url $Episode.Url -PublishDate $Episode.PublishDate -OutPath $OutPath
         } catch {
-            Write-Error "Failed to download '$($_.Title)' from $($_.Url)"
+            Write-Error "Failed to download '$($Episode.Title)' from $($Episode.Url)"
             Write-Error $_
             ++$Failed
         }
         ++$Completed
     }
+    Write-Host "Downloaded $($Completed - $Failed) episode(s) successfully"
 }
-
-Write-Host "Downloaded $($Completed - $Failed) episode(s) successfully"
