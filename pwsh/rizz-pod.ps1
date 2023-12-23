@@ -1,11 +1,20 @@
 using namespace System.IO
+[CmdletBinding(DefaultParameterSetName='download')]
 param(
-    [Parameter(Position=0)]
+    [Parameter(Position=0,ParameterSetName='download')]
+    [Parameter(Position=0,ParameterSetName='csv')]
+    [Alias('StartPage','First','Start')]
     [int]$FirstPage=1,
-    [Parameter(Position=1)]
+    [Parameter(Position=1,ParameterSetName='download')]
+    [Parameter(Position=1,ParameterSetName='csv')]
+    [Alias('EndPage','Last','End','StopPage','Stop')]
     [int]$LastPage=148,
-    [Parameter(Position=3)]
-    [string]$OutPath
+    [Parameter(ParameterSetName='csv')]
+    [switch]$MediaLinks,
+    [Parameter(Position=3,ParameterSetName='download')]
+    [string]$OutPath,
+    [Parameter(ParameterSetName='download')]
+    [double]$RedownloadSize = 120 # in MB
 )
 
 $ErrorActionPreference = 'Stop'
@@ -44,7 +53,7 @@ function Get-Filename {
         $nEnd = $Uri.Length
     }
     $ext = [Path]::GetExtension($Uri.Substring($nStart + 1, $nEnd - $nStart - 1))
-    return "$($Title.Replace("’", "'").Replace("’", "'").Trim())${ext}" -replace $INVALID_CHARS, '%'
+    return "$($Title.Replace("’", "'").Trim())${ext}" -replace $INVALID_CHARS, '%'
 }
 
 function Get-Mp3Uri() {
@@ -110,7 +119,9 @@ function Get-Episode {
         [Parameter(Mandatory,Position=2)]
         [DateTime]$PublishDate,
         [Parameter(Mandatory,Position=3)]
-        [string]$OutPath
+        [string]$OutPath,
+        [Parameter()]
+        [double]$RedownloadSize = 120
     )
     $Uri=(Get-Mp3Uri $Url)
     $Filename=Get-Filename -Title $Title -Uri $Uri
@@ -119,7 +130,7 @@ function Get-Episode {
         New-Item -ItemType Directory -Path $OutPath -ErrorAction Stop | Out-Null
     }
     $OutFile=Join-Path $OutPath $Filename
-    if ((Test-Path -LiteralPath $OutFile) -and (Get-Item -Path $OutFile).Length -gt (120 * 1024 * 1024)) {
+    if ((Test-Path -LiteralPath $OutFile) -and (Get-Item -Path $OutFile).Length -gt ($RedownloadSize * 1024 * 1024)) {
         Write-Warning "Skipped '${Title}' because file already exists in '${OutPath}'"
     } else {
         Invoke-WebRequest -Uri $Uri -OutFile $OutFile -AllowInsecureRedirect -ErrorAction Inquire
@@ -156,7 +167,7 @@ if ([string]::IsNullOrEmpty($OutPath)) {
             Downlaod=(Get-Mp3Uri -EpisodeUrl $_.Url)
         }
         ++$Count
-    } | ConvertTo-Csv > './articles.csv'
+    } | ConvertTo-Csv > './articles.out.csv'
 } else {
     $ErrorActionPreference='Continue'
     
@@ -169,7 +180,11 @@ if ([string]::IsNullOrEmpty($OutPath)) {
             -PercentComplete ($Completed / $Articles.Length * 100)
         $Episode=$_
         try {
-            Get-Episode -Title $Episode.Title -Url $Episode.Url -PublishDate $Episode.PublishDate -OutPath $OutPath
+            Get-Episode -Title $Episode.Title `
+                -Url $Episode.Url `
+                -PublishDate $Episode.PublishDate `
+                -OutPath $OutPath `
+                -RedownloadSize $RedownloadSize
         } catch {
             Write-Error "Failed to download '$($Episode.Title)' from $($Episode.Url)"
             Write-Error $_
