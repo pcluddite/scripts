@@ -21,6 +21,7 @@ param(
     [Parameter(Position=2,ParameterSetName='download')]
     [Parameter(Position=3,ParameterSetName='downloadRange')]
     [string]$CsvPath,
+    [Parameter(ParameterSetName='download')]
     [Parameter(ParameterSetName='downloadRange')]
     [double]$RedownloadSize = 0 # in MB
 )
