@@ -1,21 +1,27 @@
 using namespace System.IO
 [CmdletBinding(DefaultParameterSetName='download')]
 param(
-    [Parameter(Position=0,ParameterSetName='download')]
-    [Parameter(Position=0,ParameterSetName='csv')]
+    [Parameter(Mandatory,Position=0,ParameterSetName='downloadRange')]
+    [Parameter(Mandatory,Position=0,ParameterSetName='csvRange')]
     [Alias('StartPage','First','Start')]
     [int]$FirstPage=1,
-    [Parameter(Position=1,ParameterSetName='download')]
-    [Parameter(Position=1,ParameterSetName='csv')]
+    [Parameter(Mandatory,Position=1,ParameterSetName='downloadRange')]
+    [Parameter(Mandatory,Position=1,ParameterSetName='csvRange')]
     [Alias('EndPage','Last','End','StopPage','Stop')]
     [int]$LastPage=148,
+    [Parameter(Position=1,ParameterSetName='download')]
+    [Parameter(Position=1,ParameterSetName='csv')]
+    [int]$Page=1,
+    [Parameter(ParameterSetName='csvRange')]
     [Parameter(ParameterSetName='csv')]
     [switch]$MediaLinks,
-    [Parameter(Mandatory,Position=2,ParameterSetName='download')]
+    [Parameter(Mandatory,Position=0,ParameterSetName='download')]
+    [Parameter(Mandatory,Position=2,ParameterSetName='downloadRange')]
     [string]$OutPath,
-    [Parameter(Position=3,ParameterSetName='download')]
+    [Parameter(Position=2,ParameterSetName='download')]
+    [Parameter(Position=3,ParameterSetName='downloadRange')]
     [string]$CsvPath,
-    [Parameter(ParameterSetName='download')]
+    [Parameter(ParameterSetName='downloadRange')]
     [double]$RedownloadSize = 0 # in MB
 )
 
@@ -25,8 +31,8 @@ $INVALID_CHARS = [Path]::GetInvalidFileNameChars()
 $REPLACE_CHARS = @{
     [char]"’" =[char]"'"
     [char]"‘" =[char]"'"
-    [char]"`“"=[char]"`""
-    [char]"`”"=[char]"`""
+    [char]"`“"=[char]"'"
+    [char]"`”"=[char]"'"
     [char]"—" =[char]'-'
 }
 
@@ -161,7 +167,7 @@ function Get-Episode {
     $OutFile=Join-Path $OutPath $Filename
     $FileObject=(Get-Item -Path $OutFile -ErrorAction Ignore)
     if ($FileObject.Exists -and ($FileObject.Length / 1024 / 1024) -ge $RedownloadSize) {
-        Write-Warning "Skipped '${Title}' because file already exists in '${OutPath}'"
+        Write-Verbose "Skipped '${Title}' because file already exists in '${OutPath}'"
     } else {
         if ($FileObject.Exists) {
             Write-Warning "Redownloading '${Title}' because file is less than ${RedownloadSize} MB"
@@ -177,6 +183,11 @@ function Get-Episode {
 }
 
 $Articles=@()
+
+if ($MyInvocation.BoundParameters.ContainsKey('Page')) {
+    $FirstPage=$Page
+    $LastPage=$Page
+}
 
 $TotalPages=$LastPage-$FirstPage+1
 
@@ -255,7 +266,11 @@ if ([string]::IsNullOrEmpty($OutPath)) {
         Write-Host '[ ' -ForegroundColor Yellow -NoNewline
         Write-Host 'WARN' -ForegroundColor Yellow -NoNewline
         Write-Host ' ]' -ForegroundColor Yellow -NoNewline
-        Write-Host " ${Skipped} episode(s) were skipped"
+        if ($VerbosePreference -eq 'SilentlyContinue') {
+            Write-Host " ${Skipped} episode(s) were skipped. Use -Verbose for more details."
+        } else {
+            Write-Host " ${Skipped} episode(s) were skipped"
+        }
     }
 
     if ($Failed.Length -gt 0) {
