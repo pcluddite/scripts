@@ -27,14 +27,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$INVALID_CHARS = [Path]::GetInvalidFileNameChars()
-$REPLACE_CHARS = @{
-    [char]"’" =[char]"'"
-    [char]"‘" =[char]"'"
-    [char]"`“"=[char]"'"
-    [char]"`”"=[char]"'"
-    [char]"—" =[char]'-'
-}
+. "${PSScriptRoot}/lib/files.ps1"
 
 # Install the module on demand (https://stackoverflow.com/a/60658511/4367864)
 if (-not (Get-Module -ErrorAction Ignore -ListAvailable PSParseHTML)) {
@@ -74,22 +67,7 @@ function Get-Filename {
         }
         $ext=[Path]::GetExtension($Uri.Substring($nStart + 1, $nEnd - $nStart - 1))
     }
-
-    $sb=[Text.StringBuilder]::new($Title.Length)
-    foreach($c in [char[]]$Title) {
-        if ($INVALID_CHARS -contains $c) {
-            $sb=$sb.Append('%')
-        } else{
-            $Replacement=$REPLACE_CHARS[$c]
-            if($Replacement -eq $null) {
-                $sb=$sb.Append($c)
-            } else {
-                $sb=$sb.Append($Replacement)
-            }
-        }
-    }
-
-    return "$($sb.ToString().Trim())${ext}"
+    return (Remove-SpecialChars -Name "${Title}${ext}")
 }
 
 function Get-Mp3Uri() {
