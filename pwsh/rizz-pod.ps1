@@ -16,11 +16,19 @@ param(
     [Parameter(Position=3,ParameterSetName='download')]
     [string]$CsvPath,
     [Parameter(ParameterSetName='download')]
-    [double]$RedownloadSize = 120 # in MB
+    [double]$RedownloadSize = 0 # in MB
 )
 
 $ErrorActionPreference = 'Stop'
-$INVALID_CHARS = "[{0}]" -f [Regex]::Escape([Path]::GetInvalidFileNameChars() -join '')
+
+$INVALID_CHARS = [Path]::GetInvalidFileNameChars()
+$REPLACE_CHARS = @{
+    [char]"’" =[char]"'"
+    [char]"‘" =[char]"'"
+    [char]"`“"=[char]"`""
+    [char]"`”"=[char]"`""
+    [char]"—" =[char]'-'
+}
 
 # Install the module on demand (https://stackoverflow.com/a/60658511/4367864)
 if (-not (Get-Module -ErrorAction Ignore -ListAvailable PSParseHTML)) {
@@ -44,18 +52,38 @@ function Out-Truncated {
 
 function Get-Filename {
     param (    
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory,Position=0)]
         [string]$Title,
-        [Parameter(Mandatory)]
+        [Parameter(Position=1)]
         [string]$Uri
     )
-    $nStart = $Uri.LastIndexOf('/')
-    $nEnd = $Uri.LastIndexOf('?')
-    if ($nEnd -le $nStart) {
-        $nEnd = $Uri.Length
+
+    if ([string]::IsNullOrEmpty($Uri)) {
+        $ext='.mp3'
+    } else {
+        $nStart = $Uri.LastIndexOf('/')
+        $nEnd = $Uri.LastIndexOf('?')
+        if ($nEnd -le $nStart) {
+            $nEnd = $Uri.Length
+        }
+        $ext=[Path]::GetExtension($Uri.Substring($nStart + 1, $nEnd - $nStart - 1))
     }
-    $ext = [Path]::GetExtension($Uri.Substring($nStart + 1, $nEnd - $nStart - 1))
-    return "$($Title.Replace("’", "'").Trim())${ext}" -replace $INVALID_CHARS, '%'
+
+    $sb=[Text.StringBuilder]::new($Title.Length)
+    foreach($c in [char[]]$Title) {
+        if ($INVALID_CHARS -contains $c) {
+            $sb=$sb.Append('%')
+        } else{
+            $Replacement=$REPLACE_CHARS[$c]
+            if($Replacement -eq $null) {
+                $sb=$sb.Append($c)
+            } else {
+                $sb=$sb.Append($Replacement)
+            }
+        }
+    }
+
+    return "$($sb.ToString().Trim())${ext}"
 }
 
 function Get-Mp3Uri() {
@@ -125,8 +153,7 @@ function Get-Episode {
         [Parameter()]
         [double]$RedownloadSize = 120
     )
-    $Uri=(Get-Mp3Uri $Url)
-    $Filename=Get-Filename -Title $Title -Uri $Uri
+    $Filename=Get-Filename -Title $Title
     $OutPath=[Path]::Combine($OutPath, "$($PublishDate.Year)", "$($PublishDate.ToString('MM MMMM'))")
     if (!(Test-Path -LiteralPath $OutPath)) {
         New-Item -ItemType Directory -Path $OutPath -ErrorAction Stop | Out-Null
@@ -139,11 +166,14 @@ function Get-Episode {
         if ($FileObject.Exists) {
             Write-Warning "Redownloading '${Title}' because file is less than ${RedownloadSize} MB"
         }
+        $Uri=(Get-Mp3Uri $Url)
         Invoke-WebRequest -Uri $Uri -OutFile $OutFile -AllowInsecureRedirect -ErrorAction Inquire
         if ($?) {
             Set-ItemProperty -Path $OutFile -Name LastWriteTime -Value $PublishDate.ToUniversalTime() -ErrorAction Ignore
+            return $true
         }
     }
+    return $false
 }
 
 $Articles=@()
@@ -188,18 +218,22 @@ if ([string]::IsNullOrEmpty($OutPath)) {
     
     $Failed=@()
     $Completed=0
-    
+    $Successful=@()
+
     $Articles | % {
         Write-Progress -Activity 'Total Podcast Download' `
             -Status "Downloading '$($_.Title | Out-Truncated -Width 30)' ($($Completed + 1) out of $($Articles.Length))" `
             -PercentComplete ($Completed / $Articles.Length * 100)
         $Episode=$_
         try {
-            Get-Episode -Title $Episode.Title `
-                -Url $Episode.Url `
-                -PublishDate $Episode.PublishDate `
-                -OutPath $OutPath `
-                -RedownloadSize $RedownloadSize
+            $WasDownloaded=(Get-Episode -Title $Episode.Title `
+                                -Url $Episode.Url `
+                                -PublishDate $Episode.PublishDate `
+                                -OutPath $OutPath `
+                                -RedownloadSize $RedownloadSize)
+            if ($WasDownloaded) {
+                $Successful+=$Episode
+            }
         } catch {
             Write-Error "Failed to download '$($Episode.Title)' from $($Episode.Url)"
             Write-Error $_
@@ -207,19 +241,28 @@ if ([string]::IsNullOrEmpty($OutPath)) {
         }
         ++$Completed
     }
-    $Successful=$Completed - $Failed
-    if ($Completed -gt 0) {
-        Write-Host '[' -ForegroundColor Yellow -NoNewline
+    
+    $Skipped=$Completed - $Successful.Length - $Failed.Length
+
+    if ($Successful.Length -gt 0) {
+        Write-Host '[  ' -ForegroundColor Yellow -NoNewline
         Write-Host 'OK' -ForegroundColor Green -NoNewline
-        Write-Host ']' -ForegroundColor Yellow -NoNewline
-        Write-Host "Downloaded ${Successful} episode(s) successfully"
+        Write-Host '  ]' -ForegroundColor Yellow -NoNewline
+        Write-Host " Downloaded $($Successful.Length) episode(s) successfully"
     }
+
+    if ($Skipped -gt 0) {
+        Write-Host '[ ' -ForegroundColor Yellow -NoNewline
+        Write-Host 'WARN' -ForegroundColor Yellow -NoNewline
+        Write-Host ' ]' -ForegroundColor Yellow -NoNewline
+        Write-Host " ${Skipped} episode(s) were skipped"
+    }
+
     if ($Failed.Length -gt 0) {
         Write-Host '[' -ForegroundColor Yellow -NoNewline
-        Write-Host 'FAILED' -ForegroundColor Red  -NoNewline
-        Write-Host ']' -ForegroundColor Yellow
+        Write-Host 'FAILED' -ForegroundColor Red -NoNewline
+        Write-Host '] ' -ForegroundColor Yellow
         Write-Host "Unable to download $($Failed.Length) episode(s):"
         $Failed | % { Write-Host -Object $_ }
     }
-    
 }
