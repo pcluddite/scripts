@@ -165,7 +165,7 @@ function Get-Episode {
         New-Item -ItemType Directory -Path $OutPath -ErrorAction Stop | Out-Null
     }
     $OutFile=Join-Path $OutPath $Filename
-    $FileObject=(Get-Item -Path $OutFile -ErrorAction Ignore)
+    $FileObject=(Get-Item -LiteralPath $OutFile -ErrorAction Ignore)
     if ($FileObject.Exists -and ($FileObject.Length / 1024 / 1024) -ge $RedownloadSize) {
         Write-Verbose "Skipped '${Title}' because file already exists in '${OutPath}'"
     } else {
@@ -175,7 +175,7 @@ function Get-Episode {
         $Uri=(Get-Mp3Uri $Url)
         Invoke-WebRequest -Uri $Uri -OutFile $OutFile -AllowInsecureRedirect -ErrorAction Inquire
         if ($?) {
-            Set-ItemProperty -Path $OutFile -Name LastWriteTime -Value $PublishDate.ToUniversalTime() -ErrorAction Ignore
+            Set-ItemProperty -LiteralPath $OutFile -Name LastWriteTime -Value $PublishDate.ToUniversalTime() -ErrorAction Ignore
             return $true
         }
     }
@@ -201,7 +201,7 @@ if ([string]::IsNullOrEmpty($CsvPath)) {
         Get-Articles -Page $Page | % { $Articles += $_ }
     }
 } else {
-    $Articles=@(Import-Csv -Path $CsvPath | where { $_.Page -ge $FirstPage -and $_.Page -le $LastPage })
+    $Articles=@(Import-Csv -LiteralPath $CsvPath | where { $_.Page -ge $FirstPage -and $_.Page -le $LastPage })
 }
 
 if ([string]::IsNullOrEmpty($OutPath)) {
@@ -220,9 +220,9 @@ if ([string]::IsNullOrEmpty($OutPath)) {
                 Downlaod=(Get-Mp3Uri -EpisodeUrl $_.Url)
             }
             ++$Count
-        } | Export-Csv -Path './articles.out.csv'
+        } | Export-Csv -LiteralPath './articles.out.csv'
     } else {
-        $Articles | % { $_ } | Export-Csv -Path './articles.out.csv'
+        $Articles | % { $_ } | Export-Csv -LiteralPath './articles.out.csv'
     }
 } else {
     $ErrorActionPreference='Continue'
@@ -244,6 +244,7 @@ if ([string]::IsNullOrEmpty($OutPath)) {
                                 -RedownloadSize $RedownloadSize)
             if ($WasDownloaded) {
                 $Successful+=$Episode
+                Write-Verbose "Successfully downloaded $($Episode.Title)"
             }
         } catch {
             Write-Error "Failed to download '$($Episode.Title)' from $($Episode.Url)"
