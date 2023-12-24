@@ -261,8 +261,8 @@ if ([string]::IsNullOrEmpty($OutPath)) {
     if ($Failed.Length -gt 0) {
         Write-Host '[' -ForegroundColor Yellow -NoNewline
         Write-Host 'FAILED' -ForegroundColor Red -NoNewline
-        Write-Host '] ' -ForegroundColor Yellow
+        Write-Host '] ' -ForegroundColor Yellow -NoNewline
         Write-Host "Unable to download $($Failed.Length) episode(s):"
-        $Failed | % { Write-Host -Object $_ }
+        $Failed 
     }
 }
