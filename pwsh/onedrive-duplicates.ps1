@@ -32,7 +32,7 @@ param(
     [string]$MachineName = ${env:COMPUTERNAME}
 )
 
-. "${PSScriptRoot}/lib/files.ps1"
+. "${PSScriptRoot}/modules.ps1" -Name @('files')
 
 $ErrorActionPreference='Stop'
 

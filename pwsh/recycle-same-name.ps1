@@ -3,7 +3,7 @@ param(
     [string]$Path
 )
 
-. "${PSScriptRoot}/lib/files.ps1"
+. "${PSScriptRoot}/modules.ps1" -Name @('files', 'string')
 
 $Episodes=@{}
 

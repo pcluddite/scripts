@@ -28,26 +28,12 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-. "${PSScriptRoot}/lib/files.ps1"
+. "${PSScriptRoot}/modules.ps1" -Name @('string', 'files')
 
 # Install the module on demand (https://stackoverflow.com/a/60658511/4367864)
 if (-not (Get-Module -ErrorAction Ignore -ListAvailable PSParseHTML)) {
     Write-Verbose "Installing PSParseHTML module for the current user..."
     Install-Module -Scope CurrentUser PSParseHTML -ErrorAction Stop
-}
-  
-function Out-Truncated {
-    param(
-        [Parameter(Mandatory,ValueFromPipeline,Position=0)]
-        [psobject]$InputObject,
-        [Parameter(Mandatory,Position=1)]
-        [int]$Width
-    )
-    $str = ($InputObject | Out-String -NoNewline)
-    if ($str.Length -gt $Width) {
-        return "$($str.Substring(0, $Width - 3))..."
-    }
-    return $str
 }
 
 function Get-Filename {
@@ -212,7 +198,7 @@ if ([string]::IsNullOrEmpty($OutPath)) {
 
     $Articles | % {
         Write-Progress -Activity 'Total Podcast Download' `
-            -Status "Downloading '$($_.Title | Out-Truncated -Width 30)' ($($Completed + 1) out of $($Articles.Length))" `
+            -Status "Downloading '$($_.Title | Out-Truncate -Width 30)' ($($Completed + 1) out of $($Articles.Length))" `
             -PercentComplete ($Completed / $Articles.Length * 100)
         $Episode=$_
         try {

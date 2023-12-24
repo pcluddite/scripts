@@ -36,7 +36,7 @@ param(
     [int]$Month = 0
 )
 
-. "${PSScriptRoot}/lib/files.ps1"
+. "${PSScriptRoot}/modules.ps1" -Name @('files', 'string')
 
 function Get-FileName {
     param (    
@@ -52,20 +52,6 @@ function Get-FileName {
     }
     $ext = [Path]::GetExtension($Url.Substring($nStart + 1, $nEnd - $nStart - 1))
     return (Remove-SpecialChars "${Title}${ext}")
-}
-
-function Out-Truncated {
-    param(
-        [Parameter(Mandatory,ValueFromPipeline,Position=0)]
-        [psobject]$InputObject,
-        [Parameter(Mandatory,Position=1)]
-        [int]$Width
-    )
-    $str = ($InputObject | Out-String -NoNewline)
-    if ($str.Length -gt $Width) {
-        return "$($str.Substring(0, $Width - 3))..."
-    }
-    return $str
 }
 
 # Create the download folder if it doesn't exist
