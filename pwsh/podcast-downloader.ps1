@@ -36,7 +36,7 @@ param(
     [int]$Month = 0
 )
 
-$INVALID_CHARS = "[{0}]" -f [Regex]::Escape([Path]::GetInvalidFileNameChars() -join '')
+. "${PSScriptRoot}/lib/files.ps1"
 
 function Get-FileName {
     param (    
@@ -51,7 +51,7 @@ function Get-FileName {
         $nEnd = $Url.Length
     }
     $ext = [Path]::GetExtension($Url.Substring($nStart + 1, $nEnd - $nStart - 1))
-    return "${Title}${ext}" -replace $INVALID_CHARS, '%'
+    return (Remove-SpecialChars "${Title}${ext}")
 }
 
 function Out-Truncated {
@@ -116,7 +116,7 @@ foreach ($Episode in $RSS) {
         Invoke-WebRequest $Url -OutFile $OutFile -ErrorAction Inquire
         if ($?) {
             ++$Successful
-            Set-ItemProperty -Path $OutFile -Name LastWriteTime -Value $PubDate.ToUniversalTime() -ErrorAction Continue
+            Set-ItemProperty -LiteralPath $OutFile -Name LastWriteTime -Value $PubDate.ToUniversalTime() -ErrorAction Continue
         }
     }
     ++$Completed

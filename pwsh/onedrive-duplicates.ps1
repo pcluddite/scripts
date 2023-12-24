@@ -32,9 +32,9 @@ param(
     [string]$MachineName = ${env:COMPUTERNAME}
 )
 
-$ErrorActionPreference='Stop'
+. "${PSScriptRoot}/lib/files.ps1"
 
-Add-Type -AssemblyName Microsoft.VisualBasic
+$ErrorActionPreference='Stop'
 
 function Move-Recycle() {
     param(
@@ -47,10 +47,9 @@ function Move-Recycle() {
     )
     try {
         $RecyclePath=$Older.FullName
-        Write-Host "Recycling '${RecyclePath}'..."
-        [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($RecyclePath, 'OnlyErrorDialogs', 'SendToRecycleBin')
+        Remove-Recycle -Path $RecyclePath
         if ($Original -eq $Older) {
-            $PSCmdlet.WRiteVerbose("Moving '$($Duplicate.FullName)' to '${RecyclePath}")
+            $PSCmdlet.WriteVerbose("Moving '$($Duplicate.FullName)' to '${RecyclePath}")
             Move-Item -Path $Duplicate.FullName -Destination $RecyclePath
         }
     } catch {
@@ -66,13 +65,13 @@ function Find-Duplicates() {
         [string]$MachineName
     )
     $EscapedMachine=[Regex]::Escape($MachineName)
-    Get-ChildItem -Path $Path -File | where { $_.BaseName -imatch "^(.+)\-${EscapedMachine}(\-\d+)*`$" } | % {
+    Get-ChildItem -LiteralPath $Path -File | where { $_.BaseName -imatch "^(.+)\-${EscapedMachine}(\-\d+)*`$" } | % {
         $OriginalName=$Matches[1]
         if ([Path]::HasExtension($_.Name)) {
             $OriginalName="${OriginalName}$($_.Extension)"
         }
         $OriginalPath = Join-Path $_.DirectoryName $OriginalName
-        $Original = Get-Item -Path $OriginalPath -ErrorAction SilentlyContinue
+        $Original = Get-Item -LiteralPath $OriginalPath -ErrorAction SilentlyContinue
         if ($Original.Exists) {
             Write-Host "Found duplicate for '${OriginalPath}'..."
             @{
@@ -90,8 +89,8 @@ $RootPath=[Path]::GetFullPath($Path)
 
 Write-Host "Finding and removing duplicates for ${MachineName} in '${RootPath}'"
 
-$dirs=@(Get-ChildItem -Path $RootPath -Directory -Recurse)
-$dirs+=(Get-Item $RootPath)
+$dirs=@(Get-ChildItem -LiteralPath $RootPath -Directory -Recurse)
+$dirs+=(Get-Item -LiteralPath $RootPath)
 
 $i = 0
 $dupes=@($dirs | % {
