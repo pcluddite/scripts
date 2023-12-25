@@ -11,9 +11,9 @@ process {
         $PSCmdlet.ThrowTerminatingError($_)
     }
     $ModuleName | % {
-        $TimName="tim${_}"
+        $script:TimName="tim${_}"
         $script:Module=Get-Module -Name $TimName
-        if ($script:Module -ne $null) {
+        if ($Module -ne $null) {
             if ($Reimport) {
                 $PSCmdlet.WriteVerbose("Removing ${TimName} before import")
                 Remove-Module $TimName -ErrorAction Stop
@@ -22,9 +22,10 @@ process {
                 $PSCmdlet.WriteVerbose("Module ${TimName} is already loaded")
             }
         }
-        if ($script:Module -eq $null) {
+        if ($Module -eq $null) {
             $PSCmdlet.WriteVerbose("Importing ${TimName}")
-            Import-Module "${PSScriptRoot}/${TimName}.psm1" -ErrorAction Stop
+            $script:LibPath=Join-Path $PSScriptRoot 'lib'
+            Import-Module $(Join-Path $LibPath "${TimName}.psm1") -ErrorAction Stop
         }
     }
 }
