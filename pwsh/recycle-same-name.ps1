@@ -21,7 +21,7 @@ $SameName=@{}
 
 $Episodes.Keys | where { $Episodes[$_].Length -gt 1} | % {
     $Episodes[$_] | % {
-        $StrippedName=Remove-SpecialChars $_.Name
+        $StrippedName=($_.Name | Out-Alphanumeric)
         $List=$SameName[$StrippedName]
         if ($List -eq $null) {
             $List=@($_)
@@ -35,7 +35,7 @@ $Episodes.Keys | where { $Episodes[$_].Length -gt 1} | % {
 $SameName.Keys | where { $SameName[$_].Length -gt 1} | % { 
     $List=($SameName[$_] | Sort-Object -Descending -Property Length)
     for($i=1; $i -lt $List.Length; ++$i) {
-        Remove-Recycle $List[$i]
+        Remove-Recycle $List[$i] -Verbose
     }
     if ($List[0].Name -ne $_) {
         $NewPath=Join-Path ([IO.Path]::GetDirectoryName($List[0].FullName)) $_
