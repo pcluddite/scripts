@@ -46,7 +46,7 @@ function Out-Alphanumeric {
     process {
         $str = ($InputObject | Out-String -NoNewline)
         foreach($c in [char[]]$str) {
-            if ([char]::IsLetterOrDigit(($c) -or [char]::IsWhiteSpace($c)) {
+            if ([char]::IsLetterOrDigit($c) -or [char]::IsWhiteSpace($c)) {
                 $sb=$sb.Append($c)
             }
         }
