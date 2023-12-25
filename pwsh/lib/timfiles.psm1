@@ -35,6 +35,7 @@ $REPLACE_CHARS = @{
     [char]"`”"=[char]"`'"
     [char]"–" =[char]"-"
     [char]"—" =[char]'-'
+    [char]"…" =[char]'...'
 }
 
 function Remove-Recycle() {
