@@ -84,10 +84,19 @@ function Get-Articles {
         [Parameter(Mandatory,Position=0)]
         [int]$Page
     )
+    trap {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
 
     $PageUrl="https://www.1057thepoint.com/podcasts/the-rizzuto-show/?episode_page=${Page}"
 
-    $Response=Invoke-WebRequest -Uri $PageUrl
+    try {
+        $Response=Invoke-WebRequest -Uri $PageUrl
+    } catch {
+        $Status=$_.Exception.Response.StatusCode
+        throw "$([int]$Status) ${Status}: ${PageUrl}"
+    }
+
     $HtmlNode=($Response.Content | ConvertFrom-HTML)
 
     # select article nodes for latest episodes
