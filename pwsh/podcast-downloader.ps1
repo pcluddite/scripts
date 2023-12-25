@@ -91,7 +91,7 @@ foreach ($Episode in $RSS) {
 
     $OutFile = Join-Path $OutFile $FileName
     Write-Progress -Activity 'Total Podcast Download' `
-        -Status "Downloading '$($Episode.title | Out-Truncated -Width 30)' ($($Completed + 1) out of $($RSS.Length))" `
+        -Status "Downloading '$($Episode.title | Out-Truncate -Width 30)' ($($Completed + 1) out of $($RSS.Length))" `
         -PercentComplete ([double]$Completed / $RSS.Length * 100)
 
     # Check if the file already exists
