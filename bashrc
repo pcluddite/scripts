@@ -26,6 +26,10 @@ else
     alias rm='rm -i'
 fi
 
+if ! alias 'l.' &> /dev/null; then
+    alias l.='ls -d .*'
+fi
+
 alias cp='cp -i'
 alias mv='mv -i'
 
