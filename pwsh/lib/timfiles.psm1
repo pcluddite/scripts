@@ -29,13 +29,13 @@ Add-Type -AssemblyName Microsoft.VisualBasic
 
 $INVALID_CHARS = [IO.Path]::GetInvalidFileNameChars()
 $REPLACE_CHARS = @{
-    [char]"’" =[char]"'"
-    [char]"‘" =[char]"'"
-    [char]"`“"=[char]"`'"
-    [char]"`”"=[char]"`'"
-    [char]"–" =[char]"-"
-    [char]"—" =[char]'-'
-    [char]"…" =[char]'...'
+    [char]"’" ="'"
+    [char]"‘" ="'"
+    [char]"`“"="`'"
+    [char]"`”"="`'"
+    [char]"–" ="-"
+    [char]"—" ='-'
+    [char]"…" ='...'
 }
 
 function Remove-Recycle() {
