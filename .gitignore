@@ -2,3 +2,4 @@ un-icon/
 bin/
 *.out
 *.out.*
+tmp*
