@@ -29,7 +29,7 @@ param(
     [Parameter(Mandatory, Position=0)]
     [string]$Path,
     [Parameter(Position=1)]
-    [string]$MachineName = ${env:COMPUTERNAME}
+    [string]$MachineName = $([Environment]::MachineName)
 )
 
 . "${PSScriptRoot}/modules.ps1" -Name @('files')
