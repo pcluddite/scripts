@@ -80,7 +80,8 @@ function Find-Duplicates() {
                 Older=$(if ($_.LastWriteTime -gt $Original.LastWriteTime) { $Original } else { $_ })
             }
         } else {
-            $PSCmdlet.WriteWarning("'${OriginalPath}' does not exist")
+            $PSCmdlet.WriteWarning("Moving '$($_.Name)' to '${OriginalPath}' because the original does not exist")
+            Move-Item $_ -Destination $OriginalPath
         }
     }
 }
