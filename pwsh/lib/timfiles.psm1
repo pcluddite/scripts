@@ -47,7 +47,11 @@ function Remove-Recycle() {
         $Path | % {
             $PSCmdlet.WriteVerbose("Recycling '$_'...")
             try {
-                [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($_, 'OnlyErrorDialogs', 'SendToRecycleBin')
+                if ([Environment]::OSVersion.Platform -eq 'Unix') {
+                    trash-put $_
+                } else {
+                    [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($_, 'OnlyErrorDialogs', 'SendToRecycleBin')
+                }
             } catch {
                 $PSCmdlet.WriteError($_)
             }
