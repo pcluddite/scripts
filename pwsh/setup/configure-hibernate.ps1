@@ -3,6 +3,9 @@ param(
     [string]$SwapFile='swapfile'
 )
 
+$GIT_PATH=Join-Path -Path $PSScriptRoot -ChildPath '..'
+$LIB_PATH=Join-Path -Path $GIT_PATH -ChildPath 'lib'
+
 $ErrorActionPreference='Stop'
 
 function Assert-Truth {
@@ -38,7 +41,7 @@ function Get-SwapSize {
     return ($SwapSize * 2) + $SwapSize;
 }
 
-function New-SwapFile {
+function Build-SwapFile {
     param(
         [Parameter(Position=0)]
         [string]$SwapVolume = "/swap",
@@ -79,22 +82,25 @@ function New-SwapFile {
 function Add-ResumeModule {
     param(
         [Parameter(Mandatory)]
-        [string]$ResumePath
+        [string]$ModulePath
     )
     $FIELD='add_dracutmodules'
     $VALUE='resume'
-    $Lines=@(Get-Content -Path $ResumePath)
-    foreach($Line in $Lines) {
-        if($Line -like "${FIELD}+=*") {
-            if ($Line -notlike "${FIELD}+=`"*${VALUE}*`"") {
-                $OLDVAL=$Line.Substring($FIELD.Length + 2) # 2 for +=
-                $OLDVAL=$OLDVAL.Substring(1, $OLDVAL.LastIndexOf('"') - 1).Trim()
-                $VALUE="${VALUE} ${OLDVAL}"
+    if (Test-Path $ModulePath) {
+        $Lines=@(Get-Content -Path $ModulePath)
+        foreach($Line in $Lines) {
+            if($Line -like "${FIELD}+=*") {
+                if ($Line -notlike "${FIELD}+=`"*${VALUE}*`"") {
+                    $OLDVAL=$Line.Substring($FIELD.Length + 2) # 2 for +=
+                    $OLDVAL=$OLDVAL.Substring(1, $OLDVAL.LastIndexOf('"') - 1).Trim()
+                    $VALUE="${VALUE} ${OLDVAL}"
+                }
+                break
             }
-            break
         }
+    } else {
+        Write-Output "${FIELD}+=`" ${VALUE} `"" >> $ModulePath
     }
-    Write-Output "${FIELD}+=`" ${VALUE} `"" >> $RESUME_PATH
 }
 
 function Get-SwapUuid {
@@ -112,5 +118,86 @@ function Get-SwapUuid {
     return $UUID
 }
 
-New-SwapFile -SwapVolume $SwapVolume
-Add-ResumeModule '/etc/dracut.conf.d/resume.conf'
+function Build-BtrfsMapPhysical {
+    [CmdletBinding()]
+    param()
+    trap {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
+    $ToolPath=Join-Path -Path $LIB_PATH -ChildPath 'btrfs_map_physical.c'
+    $OutPath=Join-Path -Path $LIB_PATH -ChildPath 'tmp-btrfs_map_physical'
+    Write-Information "Building ${ToolPath}..."
+    gcc -O2 -o $OutPath $ToolPath
+    if (-not $?) {
+        throw "Unable to compile ${ToolPath}"
+    }
+}
+
+function Invoke-BtrfsMapPhysical {
+    param(
+        [Parameter(Mandatory)]
+        [string]$SwapPath
+    )
+    $OutPath=Join-Path -Path $LIB_PATH -ChildPath 'tmp-btrfs_map_physical'
+    & $OutPath $SwapPath
+}
+
+function Get-PhysicalOffset {
+    [OutputType([double])]
+    param(
+        [Parameter(Mandatory)]
+        [string]$SwapPath
+    )
+    Invoke-BtrfsMapPhysical -SwapPath $SwapPath | select -Skip 1 -First 1 | % {
+        Write-Verbose $_
+        $_.Split("`t")
+    } | select -Last 1
+}
+
+function Get-PageSize {
+    [OutputType([double])]
+    param()
+    getconf PAGESIZE
+}
+
+function Get-ResumeOffset {
+    [OutputType([double])]
+    param(
+        [string]$SwapPath
+    )
+    Build-BtrfsMapPhysical
+    $Offset=Get-PhysicalOffset -SwapPath $SwapPath
+    Write-Information "Physical offset found at ${Offset}"
+
+    $PageSize=Get-PageSize
+    Write-Information "Kernel page size is ${PageSize}"
+
+    return $Offset / $PageSize
+}
+
+function Update-Grub {
+    param(
+        [Parameter(Mandatory)]
+        [string]$SwapPath,
+        [switch]$Remove
+    )
+    $SwapUuid=Get-SwapUuid -SwapPath $SwapPath
+    Write-Information "UUID for ${SwapPath} is $SwapUuid"
+
+    $ResumeOffset=Get-ResumeOffset -SwapPath $SwapPath
+    Write-Information "Resume offset is ${ResumeOffset}"
+
+    $GrubbyArgs="resume=UUID=${SwapUuid} resume_offset=${ResumeOffset}"
+    if ($Remove) {
+        Write-Information "Removing grub args `"${GrubbyArgs}`""
+        grubby grubby --remove-args="${GrubbyArgs}" --update-kernel=ALL
+    } else {
+        Write-Information "Adding grub args `"${GrubbyArgs}`""
+        grubby --args="${GrubbyArgs}" --update-kernel=ALL
+    }
+}
+
+#Build-SwapFile -SwapVolume $SwapVolume -SwapFile $SwapFile -InformationAction Continue
+Add-ResumeModule '/etc/dracut.conf.d/resume.conf' -InformationAction Continue
+
+Update-Grub -SwapPath "${SwapVolume}/${SwapFile}" -InformationAction Continue
