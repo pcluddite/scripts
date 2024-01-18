@@ -279,3 +279,14 @@ Add-HibernateService -SwapPath $SwapPath
 Disable-SystemdCheck
 
 Write-Information 'Hibernation enabled. Restart system for changes to take effect.'
+
+if ($(getenforce) -ieq 'enabled') {
+    Write-Warning 'SELinux is enabled.'
+    Write-Warning "You may need to run the following commands to permit hibernation:
+$ audit2allow -b
+#============= systemd_sleep_t ==============
+allow systemd_sleep_t unlabeled_t:dir search;
+$ cd /tmp
+$ audit2allow -b -M systemd_sleep
+$ semodule -i systemd_sleep.pp"
+}
