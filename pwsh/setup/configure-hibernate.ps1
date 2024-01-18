@@ -7,6 +7,7 @@ $GIT_PATH=Join-Path -Path $PSScriptRoot -ChildPath '..'
 $LIB_PATH=Join-Path -Path $GIT_PATH -ChildPath 'lib'
 
 $ErrorActionPreference='Stop'
+$InformationPreference='Continue'
 
 function Assert-Truth {
     param(
@@ -24,7 +25,8 @@ function Assert-Truth {
 }
 
 function Get-SwapSize {
-    [OutputType([double])]
+    [OutputType([int])]
+    [CmdletBinding()]
     param()
     trap {
         $PSCmdlet.ThrowTerminatingError($_)
@@ -38,7 +40,7 @@ function Get-SwapSize {
     }
 
     [double]$SwapSize=$SwaponOutput.Substring(0, $endIdx)
-    return ($SwapSize * 2) + $SwapSize;
+    return [int][Math]::Round(($SwapSize * 2) + $SwapSize, [MidpointRounding]::AwayFromZero);
 }
 
 function Build-SwapFile {
@@ -63,8 +65,6 @@ function Build-SwapFile {
     if (-not $?) {
         throw 'Failed to create volume'
     }
-
-    Write-Information "Created subvolume ${SwapVolume}"
 
     $Size="$(Get-SwapSize)G"
 
@@ -101,6 +101,10 @@ function Add-ResumeModule {
     } else {
         Write-Output "${FIELD}+=`" ${VALUE} `"" >> $ModulePath
     }
+    Write-Information "Added resume to ${ModulePath}"
+    Write-Information "Running dracut -f..."
+    dracut -f
+    Write-Information "Finished dracut -f"
 }
 
 function Get-SwapUuid {
@@ -246,8 +250,7 @@ function Disable-SystemdCheck {
     }
 
 "[Service]
-Environment=SYSTEMD_BYPASS_HIBERNATION_MEMORY_CHECK=1
-" > "${LogindPath}/override.conf" | Out-Null
+Environment=SYSTEMD_BYPASS_HIBERNATION_MEMORY_CHECK=1" > "${LogindPath}/override.conf" | Out-Null
 
     Write-Information "Created ${LogindPath}/override.conf"
 
@@ -261,19 +264,18 @@ Environment=SYSTEMD_BYPASS_HIBERNATION_MEMORY_CHECK=1
     }
 
 "[Service]
-Environment=SYSTEMD_BYPASS_HIBERNATION_MEMORY_CHECK=1
-" > "${HibernatedPath}/override.conf" | Out-Null
+Environment=SYSTEMD_BYPASS_HIBERNATION_MEMORY_CHECK=1" > "${HibernatedPath}/override.conf" | Out-Null
 
     Write-Information "Created ${HibernatedPath}/override.conf"
 }
 
-Build-SwapFile -SwapVolume $SwapVolume -SwapFile $SwapFile -InformationAction Continue
-Add-ResumeModule '/etc/dracut.conf.d/resume.conf' -InformationAction Continue
+Build-SwapFile -SwapVolume $SwapVolume -SwapFile $SwapFile
+Add-ResumeModule '/etc/dracut.conf.d/resume.conf'
 
 $SwapPath="${SwapVolume}/${SwapFile}"
 
-Update-Grub -SwapPath $SwapPath -InformationAction Continue
-Add-HibernateService -SwapPath $SwapPath -InformationAction Continue
-Disable-SystemdCheck -InformationAction Continue
+Update-Grub -SwapPath $SwapPath
+Add-HibernateService -SwapPath $SwapPath
+Disable-SystemdCheck
 
 Write-Information 'Hibernation enabled. Restart system for changes to take effect.'
