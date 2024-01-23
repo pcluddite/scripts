@@ -141,10 +141,10 @@ function Get-Episode {
     $OutFile=Join-Path $OutPath $Filename
     $FileObject=(Get-Item -LiteralPath $OutFile -ErrorAction Ignore)
     if ($FileObject.Exists -and ($FileObject.Length / 1024 / 1024) -ge $RedownloadSize) {
-        Write-Verbose "Skipped '${Title}' because file already exists in '${OutPath}'"
+        Write-Information "Skipped '${Title}' because file already exists in '${OutPath}'" -Tags 'Skipped'
     } else {
         if ($FileObject.Exists) {
-            Write-Warning "Redownloading '${Title}' because file is less than ${RedownloadSize} MB"
+            Write-Information "Redownloading '${Title}' because file is less than ${RedownloadSize} MB" -Tags 'Skipped'
         }
         $Uri=(Get-Mp3Uri $Url)
         Invoke-WebRequest -Uri $Uri -OutFile $OutFile -AllowInsecureRedirect -ErrorAction Inquire
@@ -218,7 +218,7 @@ if ([string]::IsNullOrEmpty($OutPath)) {
                                 -RedownloadSize $RedownloadSize)
             if ($WasDownloaded) {
                 $Successful+=$Episode
-                Write-Verbose "Successfully downloaded $($Episode.Title)"
+                Write-Information "Successfully downloaded $($Episode.Title)" -Tags 'Success'
             }
         } catch {
             Write-Error "Failed to download '$($Episode.Title)' from $($Episode.Url)"
@@ -241,8 +241,8 @@ if ([string]::IsNullOrEmpty($OutPath)) {
         Write-Host '[ ' -ForegroundColor Yellow -NoNewline
         Write-Host 'WARN' -ForegroundColor Yellow -NoNewline
         Write-Host ' ]' -ForegroundColor Yellow -NoNewline
-        if ($VerbosePreference -eq 'SilentlyContinue') {
-            Write-Host " ${Skipped} episode(s) were skipped. Use -Verbose for more details."
+        if ($InformationPreference -eq 'SilentlyContinue') {
+            Write-Host " ${Skipped} episode(s) were skipped. Use -InformationAction 'Continue' for more details."
         } else {
             Write-Host " ${Skipped} episode(s) were skipped"
         }
