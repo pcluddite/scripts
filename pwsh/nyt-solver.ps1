@@ -3,6 +3,8 @@ param(
     [string]$Letters
 )
 
+$ErrorActionPreference = 'Stop'
+
 function Test-Word() {
     param(
         [Parameter(Mandatory, Position=0)]
@@ -10,7 +12,7 @@ function Test-Word() {
         [Parameter(Mandatory, Position=1)]
         [char[]]$Letters,
         [Parameter(Position=3)]
-        [char]$LastLetter = [char]0
+        [char]$FinalLetter = [char]0
     )
     
     $Word = $Word.ToUpper()
@@ -21,7 +23,7 @@ function Test-Word() {
     }
 
     # Check if the word starts with the last letter of the previous word
-    if ($LastLetter -ne [char]0 -and $Word[0] -ne $LastLetter) {
+    if ($FinalLetter -ne [char]0 -and $Word[0] -ne $FinalLetter) {
         return $false
     }
 
@@ -49,36 +51,48 @@ function Find-Solution() {
         [Parameter(Mandatory, Position=0)]
         [string]$Letters
     )
+
     # Load a word list from a file
-    $words = Get-Content "words.txt"
-    # Initialize an empty list of used words
-    $usedWords = @()
+    $AllWords = Get-Content "words.txt"
+
+    # Initialize an empty set of used words
+    $usedWords = [ordered]@{}
+
     # Initialize an empty set of used letters
     $usedLetters = @{}
-    # Initialize the last letter as empty
-    $LastLetter = [char]0
+
+    # Initialize the last letter as null char
+    $FinalLetter = [char]0
+
     # Loop until all letters are used
     while ($usedLetters.Count -lt $letters.Length) {
         # Find a valid word that has not been used before
-        $word = $words | Where { -not [string]::IsNullOrEmpty($_) } | Where-Object {(Test-Word -Word $_ -Letters $Letters -LastLetter $LastLetter) -and $usedWords -notcontains $_} | Select-Object -First 1
-        # If no word is found, return null
+
+        $word = $AllWords | where { -not [string]::IsNullOrEmpty($_) } `
+            | where { (Test-Word -Word $_ -Letters $Letters -FinalLetter $FinalLetter) -and -not $usedWords[$_] } `
+            | select -First 1
+
+        # If no word is found, return the list
         if ($word -eq $null) {
             return $usedWords
         }
-        # Add the word to the used words list
-        $usedWords += $word
+
+        # Add the word to the used AllWords set
+        $usedWords[$word] = $true
+
         # Add the letters of the word to the used letters set
         foreach ($char in $word) {
             $usedLetters[$char] = $true
         }
         # Update the last letter
-        $LastLetter = $word[-1]
+        $FinalLetter = $word[-1]
     }
-    # Return the used words list as the solution
-    return $usedWords
+
+    # Return the used AllWords set as the solution
+    return $usedWords.Keys
 }
 
-function Out-Solution() {
+function Write-Solution() {
     param(
         [Parameter(Mandatory,Position=0,ValueFromPipeline,ValueFromRemainingArguments)]
         [string[]]$Solution
@@ -101,4 +115,4 @@ function Out-Solution() {
     }
 }
 
-Find-Solution -Letters $Letters | Out-Solution
+Find-Solution -Letters $Letters | Write-Solution
