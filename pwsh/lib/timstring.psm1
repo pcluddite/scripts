@@ -60,7 +60,7 @@ function ConvertTo-Regex {
         [Parameter(Mandatory,Position=0)]
         [string]$Pattern,
         [Parameter(Position=1)]
-        [string]$WordBoundry="\s"
+        [string]$WordBoundry="\W"
     )
     # splits the pattern on wildchards ('*', '?', '[a-b]', etc)
     -join ([Regex]::Split($Pattern, '(?<!`)([\*\?])|(\[.*?\])') | % {
