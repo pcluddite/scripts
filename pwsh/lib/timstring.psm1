@@ -54,3 +54,27 @@ function Out-Alphanumeric {
         $sb=$sb.Clear()
     }
 }
+
+function ConvertTo-Regex {
+    param(
+        [Parameter(Mandatory,Position=0)]
+        [string]$Pattern,
+        [Parameter(Position=1)]
+        [string]$WordBoundry="\s"
+    )
+    # splits the pattern on wildchards ('*', '?', '[a-b]', etc)
+    -join ([Regex]::Split($Pattern, '(?<!`)([\*\?])|(\[.*?\])') | % {
+        # convert wildchards to regex equivalent
+        if ($_ -eq '*') {
+            ".*?${WordBoundry}?"
+        } elseif ($_ -eq '?') {
+            '.{1}'
+        } elseif ($_ -like '[*]') {
+            # don't bother validating char groups; if it's wrong, it'll error
+            $_
+        } else {
+            # escape any other text
+            [Regex]::Escape($_)
+        }
+    })
+}
