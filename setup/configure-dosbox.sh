@@ -8,11 +8,11 @@ if ! . "${COMMONDEFS}" ARRAY STDIO FILEIO ERREXIT; then
     exit 1
 fi
 
-CFG_FILE="${HOME}/.dosbox/dosbox-0.74-3.conf"
+CFG_FILE="${HOME}/.config/dosbox-x/dosbox-x.conf"
 ONEDRIVE="${HOME}/OneDrive"
 
 declare -A DRIVES=(
-    [C]="${ONEDRIVE}/Program Files/PortableApps/DOSBoxPortable/files/win"
+    [C]="${ONEDRIVE}/Program Files/DOSBoxPortable/files/win"
     [D]="${ONEDRIVE}/My Apps/Desktop/MS-DOS"
     [G]="${ONEDRIVE}/Games"
 )
