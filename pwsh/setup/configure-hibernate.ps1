@@ -180,6 +180,7 @@ function Get-ResumeOffset {
 }
 
 function Update-Grub {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)]
         [string]$SwapPath,
@@ -194,10 +195,14 @@ function Update-Grub {
     $GrubbyArgs="resume=UUID=${SwapUuid} resume_offset=${ResumeOffset}"
     if ($Remove) {
         Write-Information "Removing grub args `"${GrubbyArgs}`""
-        grubby grubby --remove-args="${GrubbyArgs}" --update-kernel=ALL
+        $GrubbyArgs=@("--remove-args=`"${GrubbyArgs}`"")
     } else {
         Write-Information "Adding grub args `"${GrubbyArgs}`""
-        grubby --args="${GrubbyArgs}" --update-kernel=ALL
+        $GrubbyArgs=@("--args=`"${GrubbyArgs}`"")
+    }
+    $GrubbyArgs+='--update-kernel=ALL'
+    if ($PSCmdlet.ShouldProcess("Running 'grubby $($GrubbArgs -join ' ')'", $GrubbyArgs[0], 'grubby')) {
+        grubby @GrubbyArgs
     }
 }
 
