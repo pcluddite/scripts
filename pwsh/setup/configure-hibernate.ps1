@@ -44,7 +44,7 @@ function Get-SwapSize {
 }
 
 function New-SwapFile {
-    [CmdletBinding(SupportsShouldProcess,ConfirmImpact='High')]
+    [CmdletBinding(SupportsShouldProcess,ConfirmImpact='Medium')]
     param(
         [Parameter(Position=0)]
         [string]$SwapVolume = "/swap",
@@ -69,59 +69,41 @@ function New-SwapFile {
         }
     }
 
-    $Size="$(Get-SwapSize)G"
-
-    New-Item -Path $SwapPath -ItemType File -WhatIf:$WhatIfPreference -Confirm:$ConfirmPreference | Out-Null
-
-    # Disable Copy On Write on the file
-
-    if ($PSCmdlet.ShouldProcess($SwapPath, 'chattr +C')) {
-        chattr +C $SwapPath
-    }
-
-    if ($PSCmdlet.ShouldProcess($SwapPath, "fallocate --length $Size")) {
-        fallocate --length $Size $SwapPath
-    }
-
-    if ($PSCmdlet.ShouldProcess($SwapPath, 'chmod 600')) {
-        chmod 600 $SwapPath
-    }
-
     if ($PSCmdlet.ShouldProcess($SwapPath, 'mkswap')) {
-        mkswap $SwapPath
-    }
+        New-Item -Path $SwapPath -ItemType File -WhatIf:$false -Confirm:$false | Out-Null
 
-    if (-not $WhatIfPreference) {
+        # Disable Copy On Write on the file
+        chattr +C $SwapPath
+        
+        # allocate space
+        $Size="$(Get-SwapSize)G"
+        fallocate --length $Size $SwapPath
+
+        # mkswap
+        chmod 600 $SwapPath
+        mkswap $SwapPath
+        
         Write-Information "Created swap file ${SwapPath} with size ${Size}"
     }
 }
 
 function Add-ResumeModule {
+    [CmdletBinding(SupportsShouldProcess,ConfirmImpact='Medium')]
     param(
         [Parameter(Mandatory)]
         [string]$ModulePath
     )
-    $FIELD='add_dracutmodules'
-    $VALUE='resume'
-    if (Test-Path $ModulePath) {
-        $Lines=@(Get-Content -Path $ModulePath)
-        foreach($Line in $Lines) {
-            if($Line -like "${FIELD}+=*") {
-                if ($Line -notlike "${FIELD}+=`"*${VALUE}*`"") {
-                    $OLDVAL=$Line.Substring($FIELD.Length + 2) # 2 for +=
-                    $OLDVAL=$OLDVAL.Substring(1, $OLDVAL.LastIndexOf('"') - 1).Trim()
-                    $VALUE="${VALUE} ${OLDVAL}"
-                }
-                break
-            }
-        }
-    } else {
-        Write-Output "${FIELD}+=`" ${VALUE} `"" >> $ModulePath
+    $ResumeLine="add_dracutmodules+=`" resume `""
+    if ($PSCmdlet.ShouldProcess($ModulePath, "Append ${ResumeLine}")) {
+        Write-Output $ResumeLine >> $ModulePath
+        Write-Information "Added resume to ${ModulePath}"
     }
-    Write-Information "Added resume to ${ModulePath}"
-    Write-Information "Running dracut -f..."
-    dracut -f
-    Write-Information "Finished dracut -f"
+
+    if ($PSCmdlet.ShouldProcess($ModulePath, "drcut -f")) {        
+        Write-Information "Running dracut -f..."
+        dracut -f
+        Write-Information "Finished dracut -f"
+    }
 }
 
 function Get-SwapUuid {
@@ -197,7 +179,7 @@ function Get-ResumeOffset {
 }
 
 function Update-Grub {
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding(SupportsShouldProcess,ConfirmImpact='High')]
     param(
         [Parameter(Mandatory)]
         [string]$SwapPath,
