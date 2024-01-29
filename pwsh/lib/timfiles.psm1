@@ -25,7 +25,9 @@
 #>
 using namespace System.IO
 
-Add-Type -AssemblyName Microsoft.VisualBasic
+if ($IsWindows) {
+    Add-Type -AssemblyName Microsoft.VisualBasic
+}
 
 $INVALID_CHARS = [IO.Path]::GetInvalidFileNameChars()
 $REPLACE_CHARS = @{
@@ -38,22 +40,31 @@ $REPLACE_CHARS = @{
     [char]"…" ='...'
 }
 
-function Remove-Recycle() {
+function Remove-Recycle {
+    [CmdletBinding(SupportsShouldProcess,ConfirmImpact='Medium')]
     param(
         [Parameter(Mandatory,ValueFromPipeline)]
         [string[]]$Path
     )
     process {
         $Path | % {
-            $PSCmdlet.WriteVerbose("Recycling '$_'...")
-            try {
-                if ([Environment]::OSVersion.Platform -eq 'Unix') {
+            if ($IsLinux) {
+                if ($PSCmdlet.ShouldProcess($_, 'trash-put')) {
+                    Write-Informat "Trashing '$_'..."
                     trash-put $_
-                } else {
-                    [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($_, 'OnlyErrorDialogs', 'SendToRecycleBin')
+                    if (-not $?) {
+                        Write-Error -Exception ([IOException]"Unable to move '${_}' to trash")
+                    }
                 }
-            } catch {
-                $PSCmdlet.WriteError($_)
+            } else {
+                if ($PSCmdlet.ShouldProcess($_, '[Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile')) {
+                    Write-Information "Recycling '$_'..."
+                    try {
+                        [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($_, 'OnlyErrorDialogs', 'SendToRecycleBin')
+                    } catch {
+                        Write-Error -Exception $_.Exception.GetBaseException()
+                    }
+                }
             }
         }
     }
