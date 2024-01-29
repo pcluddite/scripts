@@ -25,39 +25,42 @@
 #>
 using namespace System.IO
 
+[CmdletBinding(SupportsShouldProcess,ConfirmImpact='High')]
 param(
-    [Parameter(Mandatory, Position=0)]
-    [string]$Path,
+    [Parameter(Position=0)]
+    [Alias('Path')]
+    [string]$OneDrivePath = $(Join-Path $HOME 'OneDrive'),
     [Parameter(Position=1)]
     [string]$MachineName = $([Environment]::MachineName)
 )
 
-. "${PSScriptRoot}/modules.ps1" -Name @('files')
-
 $ErrorActionPreference='Stop'
 
+. "${PSScriptRoot}/modules.ps1" -Name @('files')
+
+if ($null -eq $PSBoundParameters['InformationAction']) {
+    $InformationPreference='Continue'
+}
+
 function Move-Recycle() {
+    [CmdletBinding(SupportsShouldProcess,ConfirmImpact='High')]
     param(
         [Parameter(Mandatory)]
-        [FileSystemInfo]$Original,
-        [Parameter(Mandatory)]
-        [FileSystemInfo]$Duplicate,
-        [Parameter(Mandatory)]
-        [FileSystemInfo]$Older
+        [PSCustomObject]$DupeInfo
     )
-    try {
-        $RecyclePath=$Older.FullName
-        Remove-Recycle -Path $RecyclePath
-        if ($Original -eq $Older) {
-            $PSCmdlet.WriteVerbose("Moving '$($Duplicate.FullName)' to '${RecyclePath}")
-            Move-Item -Path $Duplicate.FullName -Destination $RecyclePath
-        }
-    } catch {
+    trap {
         $PSCmdlet.ThrowTerminatingError($_)
+    }
+    $RecyclePath=$DupeInfo.Older.FullName
+    Remove-Recycle -Path $RecyclePath -ErrorAction Stop
+    if ($Original -eq $Older) {
+        Write-Information "Moving '$($DupeInfo.Duplicate.FullName)' to '${RecyclePath}"
+        Move-Item -Path $DupeInfo.Duplicate.FullName -Destination $RecyclePath -ErrorAction Stop
     }
 }
 
-function Find-Duplicates() {
+function Find-Duplicate {
+    [CmdletBinding(SupportsShouldProcess,ConfirmImpact='Medium')]
     param(
         [Parameter(Mandatory, Position=0)]
         [string]$Path,
@@ -73,44 +76,52 @@ function Find-Duplicates() {
         $OriginalPath = Join-Path $_.DirectoryName $OriginalName
         $Original = Get-Item -LiteralPath $OriginalPath -ErrorAction SilentlyContinue
         if ($Original.Exists) {
-            Write-Host "Found duplicate for '${OriginalPath}'..."
-            @{
+            Write-Information "Found duplicate for '${OriginalPath}'..."
+            [PSCustomObject]@{
                 Original=$Original
                 Duplicate=$_
                 Older=$(if ($_.LastWriteTime -gt $Original.LastWriteTime) { $Original } else { $_ })
             }
         } else {
-            $PSCmdlet.WriteWarning("Moving '$($_.Name)' to '${OriginalPath}' because the original does not exist")
-            Move-Item $_ -Destination $OriginalPath
+            $PSCmdlet.WriteWarning("Original file for '$($_.Name)' does not exist")
+            Move-Item $_ -Destination $OriginalPath -WhatIf:$WhatIfPreference -Confirm:$ConfirmPreference
         }
     }
 }
 
-$RootPath=[Path]::GetFullPath($Path)
+$RootPath=[Path]::GetFullPath($OneDrivePath)
 
-Write-Host "Finding and removing duplicates for ${MachineName} in '${RootPath}'"
-
-$dirs=@(Get-ChildItem -LiteralPath $RootPath -Directory -Recurse)
-$dirs+=(Get-Item -LiteralPath $RootPath)
-
-$i = 0
-$dupes=@($dirs | % {
-    Write-Progress -Activity 'OneDrive search status' `
-        -Status "Searching '$($_.FullName.Substring($RootPath.Length % $_.FullName.Length))'" `
-        -PercentComplete ([double]$i++ / $dirs.Length * 100)
-    Find-Duplicates -Path $_ -MachineName $MachineName
-})
-
-Write-Host "$($dupes.Length) duplicate(s) were found"
-
-for($i = 0; $i -lt $dupes.Length; ++$i) {
-    $dupe = $dupes[$i]
-    Write-Progress -Activity 'Recycling duplicates progress' `
-        -Status "Recycling '$($dupe['Older'].Name)' ($($i + 1) of $($dupes.Length))" `
-        -PercentComplete ([double]$i / $dupes.Length * 100)
-    Move-Recycle -Original $dupe['Original'] -Duplicate $dupe['Duplicate'] -Older $dupe['Older']
+if (-not (Test-Path -LiteralPath $RootPath)) {
+    try {
+        throw "${RootPath} does not exist"
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
 }
 
-if ($dupes.Length -gt 0) {
-    Write-Host 'Done'
+Write-Information "Finding and removing duplicates for ${MachineName} in '${RootPath}'"
+
+$SearchPaths=@(Get-ChildItem -LiteralPath $RootPath -Directory -Recurse)
+$SearchPaths+=(Get-Item -LiteralPath $RootPath)
+
+$i = 0
+$DupeList=@($SearchPaths | % {
+    Write-Progress -Activity 'OneDrive search status' `
+        -Status "Searching '$($_.FullName.Substring($RootPath.Length % $_.FullName.Length))'" `
+        -PercentComplete ([double]$i++ / $SearchPaths.Length * 100)
+    Find-Duplicate -Path $_ -MachineName $MachineName
+})
+
+Write-Information "$($DupeList.Length) duplicate(s) were found"
+
+for($i = 0; $i -lt $DupeList.Length; ++$i) {
+    $DupeInfo = $DupeList[$i]
+    Write-Progress -Activity 'Recycling duplicates progress' `
+        -Status "Recycling '$($DupeInfo.Older.Name)' ($($i + 1) of $($DupeList.Length))" `
+        -PercentComplete ([double]$i / $DupeList.Length * 100)
+    Move-Recycle -DupeInfo $DupeInfo -WhatIf:$WhatIfPreference -Confirm:$ConfirmPreference
+}
+
+if ($DupeList.Length -gt 0) {
+    Write-Information 'Done'
 }
