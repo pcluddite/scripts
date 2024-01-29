@@ -43,7 +43,8 @@ function Get-SwapSize {
     return [int][Math]::Round(($SwapSize * 2) + $SwapSize, [MidpointRounding]::AwayFromZero);
 }
 
-function Build-SwapFile {
+function New-SwapFile {
+    [CmdletBinding(SupportsShouldProcess,ConfirmImpact='High')]
     param(
         [Parameter(Position=0)]
         [string]$SwapVolume = "/swap",
@@ -61,22 +62,38 @@ function Build-SwapFile {
         return
     }
 
-    btrfs subvolume create $SwapVolume
-    if (-not $?) {
-        throw 'Failed to create volume'
+    if ($PSCmdlet.ShouldProcess("Run 'btrfs subvolume create ${SwapVolume}'", $SwapVolume, 'brfs')) {
+        btrfs subvolume create $SwapVolume
+        if (-not $?) {
+            throw 'Failed to create volume'
+        }
     }
 
     $Size="$(Get-SwapSize)G"
 
-    New-Item -Path $SwapPath -ItemType File | Out-Null
+    New-Item -Path $SwapPath -ItemType File -WhatIf:$WhatIfPreference -Confirm:$ConfirmPreference | Out-Null
 
     # Disable Copy On Write on the file
-    chattr +C $SwapPath
-    fallocate --length $Size $SwapPath
-    chmod 600 $SwapPath
-    mkswap $SwapPath
 
-    Write-Information "Created swap file ${SwapPath} with size ${Size}"
+    if ($PSCmdlet.ShouldProcess($SwapPath, 'chattr +C')) {
+        chattr +C $SwapPath
+    }
+
+    if ($PSCmdlet.ShouldProcess($SwapPath, "fallocate --length $Size")) {
+        fallocate --length $Size $SwapPath
+    }
+
+    if ($PSCmdlet.ShouldProcess($SwapPath, 'chmod 600')) {
+        chmod 600 $SwapPath
+    }
+
+    if ($PSCmdlet.ShouldProcess($SwapPath, 'mkswap')) {
+        mkswap $SwapPath
+    }
+
+    if (-not $WhatIfPreference) {
+        Write-Information "Created swap file ${SwapPath} with size ${Size}"
+    }
 }
 
 function Add-ResumeModule {
@@ -274,7 +291,7 @@ Environment=SYSTEMD_BYPASS_HIBERNATION_MEMORY_CHECK=1" > "${HibernatedPath}/over
     Write-Information "Created ${HibernatedPath}/override.conf"
 }
 
-Build-SwapFile -SwapVolume $SwapVolume -SwapFile $SwapFile
+New-SwapFile -SwapVolume $SwapVolume -SwapFile $SwapFile
 Add-ResumeModule '/etc/dracut.conf.d/resume.conf'
 
 $SwapPath="${SwapVolume}/${SwapFile}"
