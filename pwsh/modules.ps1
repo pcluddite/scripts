@@ -13,17 +13,17 @@ process {
     $ModuleName | % {
         $script:TimName="tim${_}"
         $script:Module=Get-Module -Name $TimName
-        if ($Module -ne $null) {
+        if ($Module) {
             if ($Reimport) {
-                $PSCmdlet.WriteVerbose("Removing ${TimName} before import")
+                Write-Information "Removing ${TimName} before import..."
                 Remove-Module $TimName -ErrorAction Stop
                 $script:Module=$null
             } else {
-                $PSCmdlet.WriteVerbose("Module ${TimName} is already loaded")
+                Write-Information "Module ${TimName} is already loaded"
             }
         }
-        if ($Module -eq $null) {
-            $PSCmdlet.WriteVerbose("Importing ${TimName}")
+        if (-not $Module) {
+            Write-Information "Importing ${TimName}..."
             $script:LibPath=Join-Path $PSScriptRoot 'lib'
             Import-Module $(Join-Path $LibPath "${TimName}.psm1") -ErrorAction Stop
         }
