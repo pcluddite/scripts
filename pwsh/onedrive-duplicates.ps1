@@ -1,6 +1,6 @@
 <#
  :
- : Copyright 2023 Timothy Baxendale (pcluddite@outlook.com)
+ : Copyright 2023-2024 Timothy Baxendale (pcluddite@outlook.com)
  :
  : Permission is hereby granted, free of charge, to any person obtaining a copy of this software
  : and associated documentation files (the "Software"), to deal in the Software without limitation
@@ -52,10 +52,16 @@ function Move-Recycle() {
         $PSCmdlet.ThrowTerminatingError($_)
     }
     $RecyclePath=$DupeInfo.Older.FullName
-    Remove-Recycle -Path $RecyclePath -ErrorAction Stop
-    if ($Original -eq $Older) {
-        Write-Information "Moving '$($DupeInfo.Duplicate.FullName)' to '${RecyclePath}"
-        Move-Item -Path $DupeInfo.Duplicate.FullName -Destination $RecyclePath -ErrorAction Stop
+    if ($DupeInfo.Original -eq $DupeInfo.Older) {
+        if ($PSCmdlet.ShouldProcess("Recycle '${RecyclePath}'", "Recycle '${RecyclePath}' and rename '$($DupeInfo.Duplicate.FullName)'?", 'Remove-Recycle')) {
+            Remove-Recycle -Path $RecyclePath -ErrorAction Stop -WhatIf:$false -Confirm:$false
+            Write-Information "Moving '$($DupeInfo.Duplicate.FullName)' to '${RecyclePath}"
+            Move-Item -Path $DupeInfo.Duplicate.FullName -Destination $RecyclePath -ErrorAction Stop -WhatIf:$false -Confirm:$false
+        }
+    } else {
+        if ($PSCmdlet.ShouldProcess("Recycle '${RecyclePath}'", "Recycle '${RecyclePath}'?", 'Remove-Recycle')) {
+            Remove-Recycle -Path $RecyclePath -ErrorAction Stop -WhatIf:$false -Confirm:$false
+        }
     }
 }
 
@@ -84,7 +90,7 @@ function Find-Duplicate {
             }
         } else {
             $PSCmdlet.WriteWarning("Original file for '$($_.Name)' does not exist")
-            Move-Item $_ -Destination $OriginalPath -WhatIf:$WhatIfPreference -Confirm:$ConfirmPreference
+            Move-Item $_ -Destination $OriginalPath -WhatIf:$WhatIfPreference
         }
     }
 }
@@ -109,7 +115,7 @@ $DupeList=@($SearchPaths | % {
     Write-Progress -Activity 'OneDrive search status' `
         -Status "Searching '$($_.FullName.Substring($RootPath.Length % $_.FullName.Length))'" `
         -PercentComplete ([double]$i++ / $SearchPaths.Length * 100)
-    Find-Duplicate -Path $_ -MachineName $MachineName
+    Find-Duplicate -Path $_ -MachineName $MachineName -WhatIf:$WhatIfPreference
 })
 
 Write-Information "$($DupeList.Length) duplicate(s) were found"
@@ -119,7 +125,7 @@ for($i = 0; $i -lt $DupeList.Length; ++$i) {
     Write-Progress -Activity 'Recycling duplicates progress' `
         -Status "Recycling '$($DupeInfo.Older.Name)' ($($i + 1) of $($DupeList.Length))" `
         -PercentComplete ([double]$i / $DupeList.Length * 100)
-    Move-Recycle -DupeInfo $DupeInfo -WhatIf:$WhatIfPreference -Confirm:$ConfirmPreference
+    Move-Recycle -DupeInfo $DupeInfo -WhatIf:$WhatIfPreference
 }
 
 if ($DupeList.Length -gt 0) {

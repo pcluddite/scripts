@@ -50,7 +50,7 @@ function Remove-Recycle {
         $Path | % {
             if ($IsLinux) {
                 if ($PSCmdlet.ShouldProcess($_, 'trash-put')) {
-                    Write-Informat "Trashing '$_'..."
+                    Write-Information "Trashing '$_'..."
                     trash-put $_
                     if (-not $?) {
                         Write-Error -Exception ([IOException]"Unable to move '${_}' to trash")
