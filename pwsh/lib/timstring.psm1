@@ -1,17 +1,18 @@
 function Select-Truncate {
-    [Cmdletbinding(DefaultParameterSetName='trail')]
+    [Cmdletbinding(DefaultParameterSetName='default')]
     param(
-        [Parameter(Mandatory,Position=1,ValueFromPipeline,ParameterSetName='trail')]
-        [Parameter(Mandatory,Position=1,ValueFromPipeline,ParameterSetName='mid')]
-        [Parameter(Mandatory,Position=1,ValueFromPipeline,ParameterSetName='lead')]
+        [Parameter(Mandatory,Position=0,ValueFromPipeline,ParameterSetName='default')]
+        [Parameter(Mandatory,Position=0,ValueFromPipeline,ParameterSetName='mid')]
+        [Parameter(Mandatory,Position=0,ValueFromPipeline,ParameterSetName='start')]
         [psobject]$InputObject,
+        [Parameter(Position=1)]
         [ValidateRange('Positive')]
         [Alias('Count','n','Width')]
         [int]$Take = 30,
         [Parameter(Mandatory,ParameterSetName='mid')]
         [Alias('Mid')]
         [switch]$Middle,
-        [Parameter(Mandatory,ParameterSetName='lead')]
+        [Parameter(Mandatory,ParameterSetName='start')]
         [switch]$Start,
         [Parameter(Position=2)]
         [AllowEmptyString()]
@@ -53,7 +54,7 @@ function Select-Truncate {
     }
 }
 
-function Out-Alpha {
+function Select-Alpha {
     param (
         [Parameter(Mandatory,ValueFromPipeline,Position=0)]
         [psobject]$InputObject
@@ -62,8 +63,8 @@ function Out-Alpha {
         $sb=[Text.StringBuilder]::new()
     }
     process {
-        $str = ($InputObject | Out-String -NoNewline)
-        foreach($c in [char[]]$str) {
+        $String = ($InputObject | Out-String -NoNewline)
+        foreach($c in [char[]]$String) {
             if ([char]::IsLetter($c) -or [char]::IsWhiteSpace($c)) {
                 $sb=$sb.Append($c)
             }
@@ -74,7 +75,7 @@ function Out-Alpha {
 }
 
 
-function Out-Alphanumeric {
+function Select-AlphaNumeric {
     param (
         [Parameter(Mandatory,ValueFromPipeline,Position=0)]
         [psobject]$InputObject
@@ -83,8 +84,8 @@ function Out-Alphanumeric {
         $sb=[Text.StringBuilder]::new()
     }
     process {
-        $str = ($InputObject | Out-String -NoNewline)
-        foreach($c in [char[]]$str) {
+        $String = ($InputObject | Out-String -NoNewline)
+        foreach($c in [char[]]$String) {
             if ([char]::IsLetterOrDigit($c) -or [char]::IsWhiteSpace($c)) {
                 $sb=$sb.Append($c)
             }
