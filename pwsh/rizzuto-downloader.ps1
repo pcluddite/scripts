@@ -207,7 +207,7 @@ if ([string]::IsNullOrEmpty($OutPath)) {
 
     $Articles | % {
         Write-Progress -Activity 'Total Podcast Download' `
-            -Status "Downloading '$($_.Title | Out-Truncate -Width 30)' ($($Completed + 1) out of $($Articles.Length))" `
+            -Status "Downloading '$($_.Title | Select-Truncate -Take 30)' ($($Completed + 1) out of $($Articles.Length))" `
             -PercentComplete ($Completed / $Articles.Length * 100)
         $Episode=$_
         try {

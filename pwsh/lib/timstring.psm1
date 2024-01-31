@@ -1,6 +1,5 @@
 function Select-Truncate {
     [Cmdletbinding(DefaultParameterSetName='trail')]
-    [Alias('Out-Truncate')]
     param(
         [Parameter(Mandatory,Position=1,ValueFromPipeline,ParameterSetName='trail')]
         [Parameter(Mandatory,Position=1,ValueFromPipeline,ParameterSetName='mid')]
