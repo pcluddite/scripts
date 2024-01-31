@@ -178,6 +178,43 @@ function Get-Episode {
     return $false
 }
 
+function Export-ArticleCsv {
+    param(
+        [Parameter(Mandatory,Position=0,ValueFromPipeline)]
+        [pscustomobject[]]$Articles,
+        [Parameter(Mandatory,Position=1)]
+        [string]$OutPath,
+        [switch]$MediaLinks
+    )
+    begin {
+        $AllArticles=@()
+    }
+    process {
+        $Articles | % { $AllArticles+=$_ }
+    }
+    end {
+        if ($MediaLinks) {
+            $Count=0
+            $AllArticles | % {
+                Write-Progress `
+                    -Activity 'Gathering download links' `
+                    -Status "$Count of $($Articles.Length)" `
+                    -PercentComplete ($Count / $Articles.Length * 100)
+                [PSCustomObject]@{
+                    Page=$_.Page
+                    Title=$_.Title
+                    PublishDate=$_.PublishDate
+                    Url=$_.Url
+                    Downlaod=(Get-Mp3Uri -EpisodeUrl $_.Url)
+                }
+                ++$Count
+            } | Export-Csv -LiteralPath $OutPath
+        } else {
+            $AllArticles | % { $_ } | Export-Csv -LiteralPath $OutPath
+        }
+    }
+}
+
 if ($PSBoundParameters['Page']) {
     $FirstPage=$Page
     $LastPage=$Page
@@ -192,25 +229,7 @@ if ($CsvPath) {
 }
 
 if (-not $OutPath) {
-    if ($MediaLinks) {
-        $Count=0
-        $Articles | % {
-            Write-Progress `
-                -Activity 'Gathering download links' `
-                -Status "$Count of $($Articles.Length)" `
-                -PercentComplete ($Count / $Articles.Length * 100)
-            [PSCustomObject]@{
-                Page=$_.Page
-                Title=$_.Title
-                PublishDate=$_.PublishDate
-                Url=$_.Url
-                Downlaod=(Get-Mp3Uri -EpisodeUrl $_.Url)
-            }
-            ++$Count
-        } | Export-Csv -LiteralPath './articles.out.csv'
-    } else {
-        $Articles | % { $_ } | Export-Csv -LiteralPath './articles.out.csv'
-    }
+    $Articles | Export-ArticleCsv -OutPath './articles.out.csv' -MediaLinks:$MediaLinks
 } else {
     $ErrorActionPreference='Continue'
     
