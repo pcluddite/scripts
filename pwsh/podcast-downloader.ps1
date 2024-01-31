@@ -51,7 +51,7 @@ function Get-FileName {
         $nEnd = $Url.Length
     }
     $ext = [Path]::GetExtension($Url.Substring($nStart + 1, $nEnd - $nStart - 1))
-    return (Remove-SpecialChars "${Title}${ext}")
+    return (Rename-SpecialChar -Name "${Title}${ext}")
 }
 
 # Create the download folder if it doesn't exist

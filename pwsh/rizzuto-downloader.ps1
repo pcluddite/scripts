@@ -1,4 +1,5 @@
 using namespace System.IO
+
 [CmdletBinding(DefaultParameterSetName='download')]
 param(
     [Parameter(Mandatory,Position=0,ParameterSetName='downloadRange')]
@@ -36,7 +37,7 @@ if (-not (Get-Module -ErrorAction Ignore -ListAvailable PSParseHTML)) {
     Install-Module -Scope CurrentUser PSParseHTML -ErrorAction Stop
 }
 
-function Get-Filename {
+function Get-FileName {
     param (    
         [Parameter(Mandatory,Position=0)]
         [string]$Title,
@@ -44,17 +45,17 @@ function Get-Filename {
         [string]$Uri
     )
 
-    if ([string]::IsNullOrEmpty($Uri)) {
-        $ext='.mp3'
-    } else {
+    if ($Uri) {
         $nStart = $Uri.LastIndexOf('/')
         $nEnd = $Uri.LastIndexOf('?')
         if ($nEnd -le $nStart) {
             $nEnd = $Uri.Length
         }
         $ext=[Path]::GetExtension($Uri.Substring($nStart + 1, $nEnd - $nStart - 1))
+    } else {
+        $ext='.mp3'
     }
-    return (Remove-SpecialChars -Name "${Title}${ext}")
+    return (Rename-SpecialChar -Name "${Title}${ext}")
 }
 
 function Get-Mp3Uri() {
@@ -79,7 +80,7 @@ function Get-Mp3Uri() {
     }
 }
 
-function Get-Articles {
+function Get-Article {
     param(
         [Parameter(Mandatory,Position=0)]
         [int]$Page
@@ -133,7 +134,7 @@ function Get-Episode {
         [Parameter()]
         [double]$RedownloadSize = 120
     )
-    $Filename=Get-Filename -Title $Title
+    $Filename=Get-FileName -Title $Title
     $OutPath=[Path]::Combine($OutPath, "$($PublishDate.Year)", "$($PublishDate.ToString('MM MMMM'))")
     if (!(Test-Path -LiteralPath $OutPath)) {
         New-Item -ItemType Directory -Path $OutPath -ErrorAction Stop | Out-Null
@@ -158,27 +159,28 @@ function Get-Episode {
 
 $Articles=@()
 
-if ($MyInvocation.BoundParameters.ContainsKey('Page')) {
+if ($PSBoundParameters.ContainsKey('Page')) {
     $FirstPage=$Page
     $LastPage=$Page
 }
 
 $TotalPages=$LastPage-$FirstPage+1
 
-if ([string]::IsNullOrEmpty($CsvPath)) {
+if (-not $CsvPath) {
     for($Page=$FirstPage; $Page -le $LastPage; ++$Page) {
         $CompletedPages=$Page - $FirstPage
         Write-Progress `
             -Activity 'Gathering links to podcast articles' `
             -Status "Page $($CompletedPages + 1) of ${TotalPages}" `
             -PercentComplete ($CompletedPages / $TotalPages * 100)
-        Get-Articles -Page $Page | % { $Articles += $_ }
+        
+        Get-Article -Page $Page | % { $Articles += $_ }
     }
 } else {
     $Articles=@(Import-Csv -LiteralPath $CsvPath | where { $_.Page -ge $FirstPage -and $_.Page -le $LastPage })
 }
 
-if ([string]::IsNullOrEmpty($OutPath)) {
+if (-not $OutPath) {
     if ($MediaLinks) {
         $Count=0
         $Articles | % {
@@ -241,10 +243,10 @@ if ([string]::IsNullOrEmpty($OutPath)) {
         Write-Host '[ ' -ForegroundColor Yellow -NoNewline
         Write-Host 'WARN' -ForegroundColor Yellow -NoNewline
         Write-Host ' ]' -ForegroundColor Yellow -NoNewline
-        if ($InformationPreference -eq 'SilentlyContinue') {
-            Write-Host " ${Skipped} episode(s) were skipped. Use -InformationAction 'Continue' for more details."
-        } else {
+        if ($InformationPreference) {
             Write-Host " ${Skipped} episode(s) were skipped"
+        } else {
+            Write-Host " ${Skipped} episode(s) were skipped. Use -InformationAction 'Continue' for more details."
         }
     }
 

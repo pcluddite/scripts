@@ -70,7 +70,7 @@ function Remove-Recycle {
     }
 }
 
-function Remove-SpecialChars {
+function Rename-SpecialChar {
     param (    
         [Parameter(Mandatory,Position=0)]
         [string]$Name
