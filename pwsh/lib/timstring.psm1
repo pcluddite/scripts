@@ -1,16 +1,56 @@
-function Out-Truncate {
+function Select-Truncate {
+    [Cmdletbinding(DefaultParameterSetName='trail')]
+    [Alias('Out-Truncate')]
     param(
-        [Parameter(Mandatory,ValueFromPipeline,Position=0)]
+        [Parameter(Mandatory,Position=1,ValueFromPipeline,ParameterSetName='trail')]
+        [Parameter(Mandatory,Position=1,ValueFromPipeline,ParameterSetName='mid')]
+        [Parameter(Mandatory,Position=1,ValueFromPipeline,ParameterSetName='lead')]
         [psobject]$InputObject,
-        [Parameter(Mandatory,Position=1)]
-        [int]$Width
+        [ValidateRange('Positive')]
+        [Alias('Count','n','Width')]
+        [int]$Take = 30,
+        [Parameter(Mandatory,ParameterSetName='mid')]
+        [Alias('Mid')]
+        [switch]$Middle,
+        [Parameter(Mandatory,ParameterSetName='lead')]
+        [switch]$Start,
+        [Parameter(Position=2)]
+        [AllowEmptyString()]
+        [string]$Elipses = '...',
+        [switch]$Trim
     )
     process {
-        $str = ($InputObject | Out-String -NoNewline)
-        if ($str.Length -gt $Width) {
-            return "$($str.Substring(0, $Width - 3))..."
+        $String=($InputObject | Out-String -NoNewline)
+        Write-Verbose "'${String}'"
+        if ($String.Length -gt $Take) {
+            $Count=$Take-$Elipses.Length
+            if ($Count -le 0) {
+                $Count=$Take
+                $Elipses=''
+            }
+            if ($Middle) {
+                $Substring1=$String.Remove([Math]::Ceiling($Count / 2))
+                $Substring2=$String.Substring($String.Length - [Math]::Floor($Count / 2))
+                if ($Trim) {
+                    $Substring1=$Substring1.TrimEnd()
+                    $Substring2=$Substring2.TrimStart()
+                }
+                return "${Substring1}${Elipses}${Substring2}"
+            } elseif($FromEnd) {
+                $Substring=$String.Substring($String.Length - $Count)
+                if ($Trim) {
+                    $Substring=$Substring.Trim()
+                }
+                return "${Elipses}${Substring}"
+            } else {
+                $Substring=$String.Remove($Count)
+                if ($Trim) {
+                    $Substring=$Substring.TrimEnd()
+                }
+                return "${Substring}${Elipses}"
+            }
         }
-        return $str
+        return $String
     }
 }
 
