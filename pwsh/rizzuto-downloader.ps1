@@ -81,42 +81,63 @@ function Get-Mp3Uri() {
 }
 
 function Get-Article {
+    [CmdletBinding()]
     param(
-        [Parameter(Mandatory,Position=0)]
-        [int]$Page
+        [Parameter(Mandatory,Position=0,ParameterSetName='default')]
+        [ValidateRange('Positive')]
+        [int]$Page,
+        [Parameter(Mandatory,Position=0,ParameterSetName='range')]
+        [ValidateRange('Positive')]
+        [int]$FirstPage,
+        [Parameter(Mandatory,Position=1,ParameterSetName='range')]
+        [ValidateScript({ $_ -ge $FirstPage })]
+        [int]$LastPage
     )
     trap {
         $PSCmdlet.ThrowTerminatingError($_)
     }
 
-    $PageUrl="https://www.1057thepoint.com/podcasts/the-rizzuto-show/?episode_page=${Page}"
-
-    try {
-        $Response=Invoke-WebRequest -Uri $PageUrl
-    } catch {
-        $Status=$_.Exception.Response.StatusCode
-        throw "$([int]$Status) ${Status}: ${PageUrl}"
+    if ($PSCmdlet.ParameterSetName -eq 'default') {
+        $FirstPage=$Page
+        $LastPage=$Page
     }
 
-    $HtmlNode=($Response.Content | ConvertFrom-HTML)
+    for($Page=$FirstPage; $Page -le $LastPage; ++$Page) {
+        $CompletedPages=$Page - $FirstPage
+        Write-Progress `
+            -Activity 'Gathering links to podcast articles' `
+            -Status "Page $($CompletedPages + 1) of ${TotalPages}" `
+            -PercentComplete ($CompletedPages / $TotalPages * 100)
+        
+        $PageUrl="https://www.1057thepoint.com/podcasts/the-rizzuto-show/?episode_page=${Page}"
 
-    # select article nodes for latest episodes
-    $Articles=$HtmlNode.SelectNodes("//div[@class='latest-episodes']/article")
+        try {
+            $Response=Invoke-WebRequest -Uri $PageUrl
+        } catch {
+            $Status=$_.Exception.Response.StatusCode
+            throw "$([int]$Status) ${Status}: ${PageUrl}"
+        }
 
-    $Articles | % { $_.InnerHtml | ConvertFrom-HTML } | % {     
-        # select link node to each article from post-title class
-        $LinkNode=$_.SelectSingleNode("//*[@class='post-title']/a")
-        return [PSCustomObject]@{
-            Page=$Page
+        $HtmlNode=($Response.Content | ConvertFrom-HTML)
 
-            # decode innerText to remove &###;
-            Title=[Net.WebUtility]::HtmlDecode($LinkNode.InnerText)
+        # select article nodes for latest episodes
+        $Articles=$HtmlNode.SelectNodes("//div[@class='latest-episodes']/article")
 
-            # get url from href attribute
-            Url=$LinkNode.Attributes['href'].Value
-            
-            # select published date from time node
-            PublishDate=[DateTime]$_.SelectSingleNode("//time").InnerText
+        $Articles | % { $_.InnerHtml | ConvertFrom-HTML } | % {     
+            # select link node to each article from post-title class
+            $LinkNode=$_.SelectSingleNode("//*[@class='post-title']/a")
+            return [PSCustomObject]@{
+                Page=$Page
+
+                # decode innerText to remove &###;
+                Title=[Net.WebUtility]::HtmlDecode($LinkNode.InnerText)
+
+                # get url from href attribute
+                Url=$LinkNode.Attributes['href'].Value
+                
+                # select published date from time node
+                PublishDate=[DateTime]$_.SelectSingleNode("//time").InnerText
+            }
         }
     }
 }
@@ -157,27 +178,17 @@ function Get-Episode {
     return $false
 }
 
-$Articles=@()
-
-if ($PSBoundParameters.ContainsKey('Page')) {
+if ($PSBoundParameters['Page']) {
     $FirstPage=$Page
     $LastPage=$Page
 }
 
 $TotalPages=$LastPage-$FirstPage+1
 
-if (-not $CsvPath) {
-    for($Page=$FirstPage; $Page -le $LastPage; ++$Page) {
-        $CompletedPages=$Page - $FirstPage
-        Write-Progress `
-            -Activity 'Gathering links to podcast articles' `
-            -Status "Page $($CompletedPages + 1) of ${TotalPages}" `
-            -PercentComplete ($CompletedPages / $TotalPages * 100)
-        
-        Get-Article -Page $Page | % { $Articles += $_ }
-    }
-} else {
+if ($CsvPath) {
     $Articles=@(Import-Csv -LiteralPath $CsvPath | where { $_.Page -ge $FirstPage -and $_.Page -le $LastPage })
+} else {
+    $Articles=@(Get-Article -FirstPage $FirstPage -LastPage $LastPage)
 }
 
 if (-not $OutPath) {
