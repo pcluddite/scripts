@@ -102,6 +102,8 @@ function Get-Article {
         $LastPage=$Page
     }
 
+    $TotalPages=$LastPage-$FirstPage+1
+
     for($Page=$FirstPage; $Page -le $LastPage; ++$Page) {
         $CompletedPages=$Page - $FirstPage
         Write-Progress `
@@ -219,8 +221,6 @@ if ($PSBoundParameters['Page']) {
     $FirstPage=$Page
     $LastPage=$Page
 }
-
-$TotalPages=$LastPage-$FirstPage+1
 
 if ($CsvPath) {
     $Articles=@(Import-Csv -LiteralPath $CsvPath | where { $_.Page -ge $FirstPage -and $_.Page -le $LastPage })
