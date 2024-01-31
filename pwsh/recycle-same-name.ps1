@@ -21,7 +21,7 @@ $SameName=@{}
 
 $Episodes.Keys | where { $Episodes[$_].Length -gt 1} | % {
     $Episodes[$_] | % {
-        $StrippedName=($_.Name | Out-Alphanumeric)
+        $StrippedName=($_.Name | Select-AlphaNumeric)
         $List=$SameName[$StrippedName]
         if ($List -eq $null) {
             $List=@($_)
