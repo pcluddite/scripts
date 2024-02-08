@@ -118,3 +118,54 @@ function ConvertTo-Regex {
         }
     })
 }
+
+function Write-InfoGood {
+    param(
+        [Parameter(Mandatory,Position=0,ValueFromPipeline)]
+        [object]$MessageData,
+        [Parameter(Position=1,ValueFromRemainingArguments)]
+        [string[]]$Tags
+    )
+    begin {
+        if ($MyInvocation.BoundParameters['InformationAction'] -eq $null) {
+            $InformationPreference='Continue'
+        }
+    }
+    process {
+        Write-Information "[   $($PSStyle.Bold)$($PSStyle.Foreground.Green)OK$($PSStyle.Reset)   ] $($MessageData | Out-String -NoNewline)"
+    }
+}
+
+function Write-InfoBad {
+    param(
+        [Parameter(Mandatory,Position=0,ValueFromPipeline)]
+        [object]$MessageData,
+        [Parameter(Position=1,ValueFromRemainingArguments)]
+        [string[]]$Tags
+    )
+    begin {
+        if ($MyInvocation.BoundParameters['InformationAction'] -eq $null) {
+            $InformationPreference='Continue'
+        }
+    }
+    process {
+        Write-Information "[ $($PSStyle.Bold)$($PSStyle.Foreground.Red)FAILED$($PSStyle.Reset) ] $($MessageData | Out-String -NoNewline)"
+    }
+}
+
+function Write-InfoWarn {
+    param(
+        [Parameter(Mandatory,Position=0,ValueFromPipeline)]
+        [object]$MessageData,
+        [Parameter(Position=1,ValueFromRemainingArguments)]
+        [string[]]$Tags
+    )
+    begin {
+        if ($MyInvocation.BoundParameters['InformationAction'] -eq $null) {
+            $InformationPreference='Continue'
+        }
+    }
+    process {
+        Write-Information "[  $($PSStyle.Bold)$($PSStyle.Foreground.Yellow)WARN$($PSStyle.Reset)  ] $($MessageData | Out-String -NoNewline)"
+    }
+}

@@ -263,28 +263,19 @@ if (-not $OutPath) {
     $Skipped=$Completed - $Successful.Length - $Failed.Length
 
     if ($Successful.Length -gt 0) {
-        Write-Host '[  ' -ForegroundColor Yellow -NoNewline
-        Write-Host 'OK' -ForegroundColor Green -NoNewline
-        Write-Host '  ]' -ForegroundColor Yellow -NoNewline
-        Write-Host " Downloaded $($Successful.Length) episode(s) successfully"
+        Write-InfoGood " Downloaded $($Successful.Length) episode(s) successfully"
     }
 
     if ($Skipped -gt 0) {
-        Write-Host '[ ' -ForegroundColor Yellow -NoNewline
-        Write-Host 'WARN' -ForegroundColor Yellow -NoNewline
-        Write-Host ' ]' -ForegroundColor Yellow -NoNewline
         if ($InformationPreference) {
-            Write-Host " ${Skipped} episode(s) were skipped"
+            Write-InfoWarn " ${Skipped} episode(s) were skipped"
         } else {
-            Write-Host " ${Skipped} episode(s) were skipped. Use -InformationAction 'Continue' for more details."
+            Write-InfoWarn " ${Skipped} episode(s) were skipped. Use -InformationAction 'Continue' for more details."
         }
     }
 
     if ($Failed.Length -gt 0) {
-        Write-Host '[' -ForegroundColor Yellow -NoNewline
-        Write-Host 'FAILED' -ForegroundColor Red -NoNewline
-        Write-Host '] ' -ForegroundColor Yellow -NoNewline
-        Write-Host "Unable to download $($Failed.Length) episode(s):"
+        Write-InfoBad "Unable to download $($Failed.Length) episode(s):"
         $Failed 
     }
 }
