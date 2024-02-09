@@ -19,7 +19,7 @@ CFG_FILE="${HOME}/.dosbox/dosbox-0.74-3.conf"
 ONEDRIVE="${HOME}/OneDrive"
 
 declare -A DRIVES=(
-    [C]="${ONEDRIVE}/Program Files/PortableApps/DOSBoxPortable/files/win"
+    [C]="${ONEDRIVE}/Program Files/DOSBox-X/win"
     [D]="${ONEDRIVE}/My Apps/Desktop/MS-DOS"
     [G]="${ONEDRIVE}/Games"
 )
