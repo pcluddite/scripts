@@ -23,6 +23,49 @@ $Drives=@{
     'I'=Join-Path '%DOSBOX%' 'install'
 }
 
+$Settings=@{
+    'sdl' = @{
+        'fulldouble'        = 'true'
+        'autolock'          = 'true'
+        'autolock_feedback' = 'none'
+        'middle_unlock'     = 'manual'
+        'mouse_emulation'   = 'always'
+        'mouse_wheel_key'   = '1'
+    }
+
+    'dosbox' = @{
+        'fastbioslogo' = 'true'
+        'startbanner'  = 'false'
+        'saveremark'   = 'false'
+    }
+
+    'render' = @{
+        'aspect'       = 'true'
+        'aspect_ratio' = '-1:-1'
+        #'scaler'       = 'normal2x forced'
+    }
+
+    'video' = @{
+        'allow low resolution vesa modes'  = 'false'
+        'allow high definition vesa modes' = 'true'
+        'allow unusual vesa modes' = 'true'
+    }
+
+    'cpu' = @{
+        'core'   = 'auto'
+        'cycles' = '35620'
+    }
+
+    'dos' = @{
+        'ver' = '6.22'
+    }
+
+    'config' = @{
+        'set path' = '+;C:\CMD'
+        'set temp' = 'C:\WINDOWS\TEMP'
+    }
+}
+
 if (-not (Test-Path $ConfigPath)) {
     throw [IO.FileNotFoundException]"Could not find '${ConfigPath}'"
 }
