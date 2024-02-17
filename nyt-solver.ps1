@@ -14,7 +14,7 @@ function Test-Word() {
         [Parameter(Position=3)]
         [char]$FinalLetter = [char]0
     )
-    
+
     $Word = $Word.ToUpper()
 
     # Check if the word is at least 3 letters long

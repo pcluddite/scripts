@@ -38,7 +38,7 @@ if (-not (Get-Module -ErrorAction Ignore -ListAvailable PSParseHTML)) {
 }
 
 function Get-FileName {
-    param (    
+    param (
         [Parameter(Mandatory,Position=0)]
         [string]$Title,
         [Parameter(Position=1)]
@@ -67,7 +67,7 @@ function Get-Mp3Uri() {
     process {
         $EpisodeUrl | % {
             $Response=(Invoke-WebRequest -Uri $_)
-            
+
             $HtmlNode=($Response.Content | ConvertFrom-HTML)
 
             $Script=($HtmlNode.SelectNodes("//div[@class='entry-content']/script") | % { $_.InnerText.Trim() } | where { $_ -ne '' } | select -First 1)
@@ -110,7 +110,7 @@ function Get-Article {
             -Activity 'Gathering links to podcast articles' `
             -Status "Page $($CompletedPages + 1) of ${TotalPages}" `
             -PercentComplete ($CompletedPages / $TotalPages * 100)
-        
+
         $PageUrl="https://www.1057thepoint.com/podcasts/the-rizzuto-show/?episode_page=${Page}"
 
         try {
@@ -125,7 +125,7 @@ function Get-Article {
         # select article nodes for latest episodes
         $Articles=$HtmlNode.SelectNodes("//div[@class='latest-episodes']/article")
 
-        $Articles | % { $_.InnerHtml | ConvertFrom-HTML } | % {     
+        $Articles | % { $_.InnerHtml | ConvertFrom-HTML } | % {
             # select link node to each article from post-title class
             $LinkNode=$_.SelectSingleNode("//*[@class='post-title']/a")
             return [PSCustomObject]@{
@@ -136,7 +136,7 @@ function Get-Article {
 
                 # get url from href attribute
                 Url=$LinkNode.Attributes['href'].Value
-                
+
                 # select published date from time node
                 PublishDate=[DateTime]$_.SelectSingleNode("//time").InnerText
             }
@@ -232,7 +232,7 @@ if (-not $OutPath) {
     $Articles | Export-ArticleCsv -OutPath './articles.out.csv' -MediaLinks:$MediaLinks
 } else {
     $ErrorActionPreference='Continue'
-    
+
     $Failed=@()
     $Completed=0
     $Successful=@()
@@ -259,7 +259,7 @@ if (-not $OutPath) {
         }
         ++$Completed
     }
-    
+
     $Skipped=$Completed - $Successful.Length - $Failed.Length
 
     if ($Successful.Length -gt 0) {
@@ -276,6 +276,6 @@ if (-not $OutPath) {
 
     if ($Failed.Length -gt 0) {
         Write-InfoBad "Unable to download $($Failed.Length) episode(s):"
-        $Failed 
+        $Failed
     }
 }

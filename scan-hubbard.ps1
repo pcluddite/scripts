@@ -2,7 +2,7 @@
 $Start=999999999
 $Count=9999999999
 
-for($i = $Start; $i -lt $Count; ++$i) { 
+for($i = $Start; $i -lt $Count; ++$i) {
     $Name="HUBB$($i.ToString().PadLeft(10, '0')).mp3"
 
     $Percent=($i - $Start) / ($Count - $Start) * 100

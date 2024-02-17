@@ -1,5 +1,6 @@
 function Select-Truncate {
     [Cmdletbinding(DefaultParameterSetName='default')]
+    [OutputType([string])]
     param(
         [Parameter(Mandatory,Position=0,ValueFromPipeline,ParameterSetName='default')]
         [Parameter(Mandatory,Position=0,ValueFromPipeline,ParameterSetName='mid')]
@@ -55,6 +56,7 @@ function Select-Truncate {
 }
 
 function Select-Alpha {
+    [OutputType([string])]
     param (
         [Parameter(Mandatory,ValueFromPipeline,Position=0)]
         [psobject]$InputObject
@@ -76,6 +78,7 @@ function Select-Alpha {
 
 
 function Select-AlphaNumeric {
+    [OutputType([string])]
     param (
         [Parameter(Mandatory,ValueFromPipeline,Position=0)]
         [psobject]$InputObject
@@ -96,6 +99,7 @@ function Select-AlphaNumeric {
 }
 
 function ConvertTo-Regex {
+    [OutputType([string])]
     param(
         [Parameter(Mandatory,Position=0)]
         [string]$Pattern,
@@ -120,6 +124,7 @@ function ConvertTo-Regex {
 }
 
 function Write-InfoGood {
+    [OutputType([void])]
     param(
         [Parameter(Mandatory,Position=0,ValueFromPipeline)]
         [object]$MessageData,
@@ -127,7 +132,7 @@ function Write-InfoGood {
         [string[]]$Tags
     )
     begin {
-        if ($MyInvocation.BoundParameters['InformationAction'] -eq $null) {
+        if ($null -eq $MyInvocation.BoundParameters['InformationAction']) {
             $InformationPreference='Continue'
         }
     }
@@ -144,7 +149,7 @@ function Write-InfoBad {
         [string[]]$Tags
     )
     begin {
-        if ($MyInvocation.BoundParameters['InformationAction'] -eq $null) {
+        if ($null -eq $MyInvocation.BoundParameters['InformationAction']) {
             $InformationPreference='Continue'
         }
     }
@@ -161,7 +166,7 @@ function Write-InfoWarn {
         [string[]]$Tags
     )
     begin {
-        if ($MyInvocation.BoundParameters['InformationAction'] -eq $null) {
+        if ($null -eq $MyInvocation.BoundParameters['InformationAction']) {
             $InformationPreference='Continue'
         }
     }
