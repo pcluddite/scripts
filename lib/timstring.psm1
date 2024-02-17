@@ -1,3 +1,18 @@
+function Assert-Truth {
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [bool]$Assertion,
+        [Parameter(Position=1)]
+        [string]$ErrorMessage='Assertion failed'
+    )
+    trap {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
+    if (-not $Assertion) {
+        throw $ErrorMessage
+    }
+}
+
 function Select-Truncate {
     [Cmdletbinding(DefaultParameterSetName='default')]
     [OutputType([string])]
@@ -75,7 +90,6 @@ function Select-Alpha {
         $sb=$sb.Clear()
     }
 }
-
 
 function Select-AlphaNumeric {
     [OutputType([string])]

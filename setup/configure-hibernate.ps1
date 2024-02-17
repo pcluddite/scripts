@@ -9,21 +9,6 @@ $LIB_PATH=Join-Path -Path $GIT_PATH -ChildPath 'lib'
 $ErrorActionPreference='Stop'
 $InformationPreference='Continue'
 
-function Assert-Truth {
-    param(
-        [Parameter(Position=0,Mandatory=$true)]
-        [bool]$Assertion,
-        [Parameter(Position=1)]
-        [string]$ErrorMessage='Assertion failed'
-    )
-    trap {
-        $PSCmdlet.ThrowTerminatingError($_)
-    }
-    if (-not $Assertion) {
-        throw $ErrorMessage
-    }
-}
-
 function Get-SwapSize {
     [OutputType([int])]
     [CmdletBinding()]
@@ -74,7 +59,7 @@ function New-SwapFile {
 
         # Disable Copy On Write on the file
         chattr +C $SwapPath
-        
+
         # allocate space
         $Size="$(Get-SwapSize)G"
         fallocate --length $Size $SwapPath
@@ -82,7 +67,7 @@ function New-SwapFile {
         # mkswap
         chmod 600 $SwapPath
         mkswap $SwapPath
-        
+
         Write-Information "Created swap file ${SwapPath} with size ${Size}"
     }
 }
@@ -99,7 +84,7 @@ function Add-ResumeModule {
         Write-Information "Added resume to ${ModulePath}"
     }
 
-    if ($PSCmdlet.ShouldProcess($ModulePath, "drcut -f")) {        
+    if ($PSCmdlet.ShouldProcess($ModulePath, "drcut -f")) {
         Write-Information "Running dracut -f..."
         dracut -f
         Write-Information "Finished dracut -f"
