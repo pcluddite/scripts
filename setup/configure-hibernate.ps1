@@ -28,6 +28,25 @@ function Get-SwapSize {
     return [int][Math]::Round(($SwapSize * 2) + $SwapSize, [MidpointRounding]::AwayFromZero);
 }
 
+function New-BtrfsVolume {
+    [CmdletBinding(SupportsShouldProcess,ConfirmImpact='Medium')]
+    param(
+        [Parameter(Position=0)]
+        [string]$SwapVolume = "/swap"
+    )
+    process {
+        trap {
+            $PSCmdlet.ThrowTerminatingError($_)
+        }
+        if ($PSCmdlet.ShouldProcess("Run 'btrfs subvolume create ${SwapVolume}'", $SwapVolume, 'brfs')) {
+            btrfs subvolume create $SwapVolume
+            if (-not $?) {
+                throw 'Failed to create volume'
+            }
+        }
+    }
+}
+
 function New-SwapFile {
     [CmdletBinding(SupportsShouldProcess,ConfirmImpact='Medium')]
     param(
@@ -36,39 +55,49 @@ function New-SwapFile {
         [Parameter(Position=1)]
         [string]$SwapFile = "swapfile"
     )
-    trap {
-        $PSCmdlet.ThrowTerminatingError($_)
-    }
+    begin {
+        $SwapPath=[IO.Path]::GetFullPath((Join-Path -Path $SwapVolume -ChildPath $SwapFile))
 
-    $SwapPath="${SwapVolume}/${SwapFile}"
-
-    if (Test-Path $SwapPath) {
-        Write-Information "${SwapPath} will not be created because it already exists"
-        return
-    }
-
-    if ($PSCmdlet.ShouldProcess("Run 'btrfs subvolume create ${SwapVolume}'", $SwapVolume, 'brfs')) {
-        btrfs subvolume create $SwapVolume
-        if (-not $?) {
-            throw 'Failed to create volume'
+        if (Test-Path -LiteralPath $SwapPath) {
+            Write-Information "${SwapPath} will not be created because it already exists"
+            return
         }
     }
+    process {
+        trap {
+            $PSCmdlet.ThrowTerminatingError($_)
+        }
 
-    if ($PSCmdlet.ShouldProcess($SwapPath, 'mkswap')) {
-        New-Item -Path $SwapPath -ItemType File -WhatIf:$false -Confirm:$false | Out-Null
+        $Size="$(Get-SwapSize -ErrorAction Stop)G"
 
-        # Disable Copy On Write on the file
-        chattr +C $SwapPath
+        if ($PSCmdlet.ShouldProcess("Creating ${SwapPath} of size ${Size}", "Create ${SwapPath} with size ${Size}?", 'mkswap')) {
+            New-Item -Path $SwapPath -ItemType File -WhatIf:$false -Confirm:$false | Out-Null
 
-        # allocate space
-        $Size="$(Get-SwapSize)G"
-        fallocate --length $Size $SwapPath
+            # Disable Copy On Write on the file
+            chattr +C $SwapPath
+            if (-not $?) {
+                throw [IO.IOException]'Unable to disable copy-on-write attribute'
+            }
 
-        # mkswap
-        chmod 600 $SwapPath
-        mkswap $SwapPath
+            # allocate space
+            fallocate --length $Size $SwapPath
+            if (-not $?) {
+                throw [IO.IOException]"Unable to allocate ${Size} to ${SwapPath}"
+            }
 
-        Write-Information "Created swap file ${SwapPath} with size ${Size}"
+            # mkswap
+            chmod 600 $SwapPath
+            if (-not $?) {
+                throw [IO.IOException]"Unable to set permissions of ${SwapPath} to 600"
+            }
+
+            mkswap $SwapPath
+            if (-not $?) {
+                throw [IO.IOException]"Unable to make ${SwapPath} a swap file"
+            }
+
+            Write-Information "Created swap file ${SwapPath} with size ${Size}"
+        }
     }
 }
 
