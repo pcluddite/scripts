@@ -33,8 +33,8 @@ fi
 alias cp='cp -i'
 alias mv='mv -i'
 
-alias status='sudo systemctl status'
-alias ustatus='systemctl --user status'
+alias status='journalctl -fu'
+alias ustatus='journalctl --user -fu'
 
 alias screen='tmux attach -t'
 
