@@ -1,2 +1,2 @@
 # scripts
-Personal bash scripts
+Personal shell scripts
