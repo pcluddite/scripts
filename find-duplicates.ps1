@@ -15,7 +15,7 @@ param(
     [string]$Algorithm = 'MD5'
 )
 $MODULE_PATH=Join-Path $PSScriptRoot 'modules.ps1'
-. $MODULE_PATH -Name @('files')
+. $MODULE_PATH -Name @('files','string')
 
 $FileMap=@{}
 
@@ -24,13 +24,22 @@ function Find-Duplicate {
         [Parameter(Mandatory,Position=0)]
         [string]$Path,
         [Parameter(Position=1)]
-        [string]$Filter,
+        [string[]]$Filter,
         [Parameter()]
         [string]$Algorithm='MD5',
         [Parameter()]
         [switch]$Recurse
     )
-    $AllFiles=@(Get-ChildItem -LiteralPath:$Path -Filter:$Filter -Recurse:$Recurse -File)
+    if ($Filter) {
+        $AllFiles=@()
+        $Filter | % {
+            Get-ChildItem -LiteralPath:$Path -Filter:$_ -Recurse:$Recurse -File | % {
+                $AllFiles+=$_
+            }
+        }
+    } else {
+        $AllFiles=@(Get-ChildItem -LiteralPath:$Path -Filter:$Filter -Recurse:$Recurse -File)
+    }
     $i=0
     $AllFiles | % {
         $Hash=(Get-FileHash -LiteralPath $_.FullName -Algorithm $Algorithm).Hash
@@ -47,8 +56,6 @@ function Find-Duplicate {
     }
 }
 
-$i=0
-
 $Path | % {
     trap {
         $PSCmdlet.WriteError($_)
@@ -59,19 +66,29 @@ $Path | % {
         throw [DirectoryNotFoundException]"'${_}' does not exist"
     } elseif ($Directory -isnot [DirectoryInfo]) {
         throw [DirectoryNotFoundException]"'${_}' is not a directory"
-    } elseif ($Filter) {
-        $Filter | % {
-            Find-Duplicate -Path $Directory -Filter $_ -Recurse:$Recurse -Algorithm $Algorithm
-        }
     } else {
-        Find-Duplicate -Path $Directory -Recurse:$Recurse -Algorithm $Algorithm
+        Find-Duplicate -Path $Directory -Filter $Filter -Recurse:$Recurse -Algorithm $Algorithm
     }
-    ++$i
 }
 
-$FileMap.Keys | % {
+$DupeCount=0
+$TotalSize=0
+
+$Duplicates=@($FileMap.Keys | % {
+    $DistinctPaths=@($FileMap[$_].Keys | sort -Property FullName)
     [PSCustomObject]@{
         Hash = $_
-        Paths = @($FileMap[$_].Keys | sort -Property FullName)
+        Length = (Get-Item -LiteralPath $DistinctPaths[0]).Length
+        Files = $DistinctPaths
     }
-} | where { $_.Paths.Length -gt 1 }
+} | where { $_.Files.Length -gt 1 } | % {
+    $DupeCount=$DupeCount + $_.Files.Length - 1
+    $TotalSize=$TotalSize+($_.Length * ($_.Files.Length - 1))
+    $_
+ })
+
+ $Duplicates
+
+if ($Duplicates.Length -gt 0) {
+    Write-Warning "Found $($Duplicates.Length.ToString("#,###")) unique file(s) with $($DupeCount.ToString("#,###")) duplicate(s) occupying an additional $(($TotalSize / 1024 / 1024).ToString("#,###")) MB"
+}
