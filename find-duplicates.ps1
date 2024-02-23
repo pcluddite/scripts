@@ -73,8 +73,9 @@ $Path | % {
 
 $DupeCount=0
 $TotalSize=0
+$UniqueCount=0
 
-$Duplicates=@($FileMap.Keys | % {
+$FileMap.Keys | % {
     $DistinctPaths=@($FileMap[$_].Keys | sort -Property FullName)
     [PSCustomObject]@{
         Hash = $_
@@ -83,12 +84,12 @@ $Duplicates=@($FileMap.Keys | % {
     }
 } | where { $_.Files.Length -gt 1 } | % {
     $DupeCount=$DupeCount + $_.Files.Length - 1
+    $UniqueCount=$UniqueCount+1
     $TotalSize=$TotalSize+($_.Length * ($_.Files.Length - 1))
     $_
- })
+}
 
- $Duplicates
 
-if ($Duplicates.Length -gt 0) {
-    Write-Warning "Found $($Duplicates.Length.ToString("#,###")) unique file(s) with $($DupeCount.ToString("#,###")) duplicate(s) occupying an additional $(($TotalSize / 1024 / 1024).ToString("#,###")) MB"
+if ($UniqueCount -gt 0) {
+    Write-Warning "Found $($UniqueCount.ToString("#,###")) unique file(s) with $($DupeCount.ToString("#,###")) duplicate(s) occupying an additional $(($TotalSize / 1024 / 1024).ToString("#,###.##")) MB"
 }
