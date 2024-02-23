@@ -1,3 +1,5 @@
+using namespace System.Diagnostics.CodeAnalysis;
+
 function Assert-Truth {
     param(
         [Parameter(Position=0,Mandatory=$true)]
@@ -52,7 +54,7 @@ function Select-Truncate {
                     $Substring2=$Substring2.TrimStart()
                 }
                 return "${Substring1}${Elipses}${Substring2}"
-            } elseif($FromEnd) {
+            } elseif($Start) {
                 $Substring=$String.Substring($String.Length - $Count)
                 if ($Trim) {
                     $Substring=$Substring.Trim()
@@ -113,6 +115,7 @@ function Select-AlphaNumeric {
 }
 
 function ConvertTo-Regex {
+    [SuppressMessageAttribute('PSReviewUnusedParameter','WordBoundry',Justification='false positive')]
     [OutputType([string])]
     param(
         [Parameter(Mandatory,Position=0)]
