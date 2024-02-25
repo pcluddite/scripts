@@ -76,7 +76,7 @@ $TotalSize=0
 $UniqueCount=0
 
 $FileMap.Keys | % {
-    $DistinctPaths=@($FileMap[$_].Keys | sort -Property FullName)
+    $DistinctPaths=@($FileMap[$_].Keys | Sort-Object -Property FullName)
     [PSCustomObject]@{
         Hash = $_
         Length = (Get-Item -LiteralPath $DistinctPaths[0]).Length
