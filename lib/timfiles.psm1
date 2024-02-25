@@ -150,10 +150,10 @@ function Rename-SpecialChar {
             $sb=$sb.Append('%')
         } else{
             $Replacement=$REPLACE_CHARS[$c]
-            if($Replacement -eq $null) {
-                $sb=$sb.Append($c)
-            } else {
+            if($Replacement) {
                 $sb=$sb.Append($Replacement)
+            } else {
+                $sb=$sb.Append($c)
             }
         }
     }
