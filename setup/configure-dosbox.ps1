@@ -1,6 +1,6 @@
 [CmdletBinding(SupportsShouldProcess,ConfirmImpact='High')]
 param(
-    [string]$ConfigPath = "${HOME}/.dosbox/dosbox-0.74-3.conf",
+    [string]$ConfigPath = "${HOME}/.config/dosbox-x/dosbox-x.conf",
     [string]$OneDrive = "${HOME}/OneDrive"
 )
 trap {
