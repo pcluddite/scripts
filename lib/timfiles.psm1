@@ -40,30 +40,51 @@ $REPLACE_CHARS = @{
     [char]"…" ='...'
 }
 
+function Test-TrashPut {
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param()
+    command -v 'trash-put' | Out-Null
+    return $?
+}
+
 function Remove-Recycle {
     [CmdletBinding(SupportsShouldProcess,ConfirmImpact='Medium')]
     param(
         [Parameter(Mandatory,ValueFromPipeline)]
         [string[]]$Path
     )
+    begin {
+        if (-not $IsWindows) {
+            $HasTrashPut=Test-TrashPut
+        }
+    }
     process {
         $Path | % {
-            if ($IsLinux) {
-                if ($PSCmdlet.ShouldProcess($_, 'trash-put')) {
-                    Write-Information "Trashing '$_'..."
-                    trash-put $_
-                    if (-not $?) {
-                        Write-Error -Exception ([IOException]"Unable to move '${_}' to trash")
-                    }
-                }
-            } else {
+            trap {
+                $PSCmdlet.WriteError($_)
+            }
+            if ($IsWindows) {
                 if ($PSCmdlet.ShouldProcess($_, '[Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile')) {
                     Write-Information "Recycling '$_'..."
                     try {
                         [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($_, 'OnlyErrorDialogs', 'SendToRecycleBin')
                     } catch {
-                        Write-Error -Exception $_.Exception.GetBaseException()
+                        throw [IOException]::new("Could not delete '${_}'", $_.Exception.GetBaseException())
                     }
+                }
+            } elseif ($HasTrashPut) {
+                if ($PSCmdlet.ShouldProcess($_, 'trash-put')) {
+                    Write-Information "Trashing '$_'..."
+                    trash-put $_
+                    if (-not $?) {
+                        throw [IOException]"Unable to move '${_}' to trash"
+                    }
+                }
+            } else {
+                Write-Warning "Removing '$_'! This cannot be undone!"
+                if ($PSCmdlet.ShouldProcess($_, 'Remove-Item')) {
+                    Remove-Item -LiteralPath $_ -ErrorAction Continue -WhatIf:$false -Confirm:$false
                 }
             }
         }
