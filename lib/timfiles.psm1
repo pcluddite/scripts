@@ -86,14 +86,6 @@ function Select-Text {
     }
 }
 
-function Test-TrashPut {
-    [CmdletBinding()]
-    [OutputType([bool])]
-    param()
-    command -v 'trash-put' | Out-Null
-    return $?
-}
-
 function Remove-Recycle {
     [CmdletBinding(SupportsShouldProcess,ConfirmImpact='Medium')]
     param(
@@ -102,7 +94,7 @@ function Remove-Recycle {
     )
     begin {
         if (-not $IsWindows) {
-            $HasTrashPut=Test-TrashPut
+            $HasTrashPut=Test-Command 'trash-put'
         }
     }
     process {
@@ -159,4 +151,17 @@ function Rename-SpecialChar {
     }
 
     return "$($sb.ToString().Trim())$([IO.Path]::GetExtension($Name))"
+}
+
+function Test-Command {
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory,Position=0,ValueFromPipeline)]
+        [string]$Name
+    )
+    process {
+        Get-Command -Name $Name -ErrorAction SilentlyContinue | Out-Null
+        return $?
+    }
 }
