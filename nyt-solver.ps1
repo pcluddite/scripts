@@ -70,10 +70,15 @@ function Find-Solution() {
     while ($UsedLetters.Count -lt $letters.Length) {
         # Find a valid word that has not been used before
 
-        $Word = $AllWords `
-            | where { $_ -and -not $UsedWords[$_] -and (Test-Word -Word $_ -Letters $Letters -FinalLetter $FinalLetter) } `
-            | Sort-Object -Descending `
-            | select -First 1
+        $Word = $AllWords | where { $_ -and -not $UsedWords[$_] -and (Test-Word -Word $_ -Letters $Letters -FinalLetter $FinalLetter) }
+            | % {
+                [PSCustomObject]@{
+                    Word=$_
+                    Count=$(([char[]]$_ | select -Unique).Count)
+                }
+            }
+            | Sort-Object -Property Count -Descending 
+            | % { $_.Word } | select -First 1
 
         # If no word is found, return the list
         if (-not $Word) {
