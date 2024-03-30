@@ -3,6 +3,7 @@ using namespace System.IO;
 [CmdletBinding(SupportsShouldProcess,ConfirmImpact='Low')]
 param(
     [Parameter(Mandatory,Position=0)]
+    [ValidateScript({ Test-Path -LiteralPath $_ })]
     [string]$Path,
     [Parameter()]
     [string]$OutputPath,
@@ -20,6 +21,26 @@ trap {
 }
 
 . "${PSScriptRoot}/modules.ps1" -Name @('files') -ErrorAction Stop
+
+function Get-UniconDirPath {
+    Join-Path $PSScriptRoot 'un-icon'
+}
+
+function Get-RmScriptPath {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Name
+    )
+    Join-Path (Get-UniconDirPath) $Name
+}
+
+function Get-TempRmScriptPath {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Name
+    )
+    Join-Path ([Path]::GetTempPath()) "uninstall-wineico-$($Name.Replace(' ', '-')).tmp"
+}
 
 $Path=[Path]::GetFullPath($Path)
 
