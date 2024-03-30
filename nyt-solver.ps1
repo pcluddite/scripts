@@ -1,6 +1,8 @@
+using namespace System.Text;
+
 param(
-    [Parameter(Mandatory, Position=0)]
-    [string]$Letters
+    [Parameter(Position=0)]
+    [string]$Letters = 'DMEOIHARSPFW'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -56,40 +58,42 @@ function Find-Solution() {
     $AllWords = Get-Content "words.txt"
 
     # Initialize an empty set of used words
-    $usedWords = [ordered]@{}
+    $UsedWords = [ordered]@{}
 
     # Initialize an empty set of used letters
-    $usedLetters = @{}
+    $UsedLetters = @{}
 
     # Initialize the last letter as null char
     $FinalLetter = [char]0
 
     # Loop until all letters are used
-    while ($usedLetters.Count -lt $letters.Length) {
+    while ($UsedLetters.Count -lt $letters.Length) {
         # Find a valid word that has not been used before
 
-        $word = $AllWords | where { -not [string]::IsNullOrEmpty($_) } `
-            | where { (Test-Word -Word $_ -Letters $Letters -FinalLetter $FinalLetter) -and -not $usedWords[$_] } `
+        $Word = $AllWords `
+            | where { $_ -and -not $UsedWords[$_] -and (Test-Word -Word $_ -Letters $Letters -FinalLetter $FinalLetter) } `
+            | Sort-Object -Descending `
             | select -First 1
 
         # If no word is found, return the list
-        if ($word -eq $null) {
-            return $usedWords
+        if (-not $Word) {
+            return $UsedWords
         }
+        Write-Verbose "Found ${Word}"
 
         # Add the word to the used AllWords set
-        $usedWords[$word] = $true
+        $UsedWords[$Word] = $true
 
         # Add the letters of the word to the used letters set
-        foreach ($char in $word) {
-            $usedLetters[$char] = $true
+        foreach ($char in $Word) {
+            $UsedLetters[$char] = $true
         }
         # Update the last letter
-        $FinalLetter = $word[-1]
+        $FinalLetter = $Word[-1]
     }
 
     # Return the used AllWords set as the solution
-    return $usedWords.Keys
+    return $UsedWords.Keys
 }
 
 function Write-Solution() {
@@ -99,20 +103,21 @@ function Write-Solution() {
     )
     begin {
         $First=$true
+        $sb=[StringBuilder]::new()
     }
     process {
         $Solution | % {
             if ($First) {
-                Write-Host $_ -NoNewline
-                $First = $false
+                $First=$false
             } else {
-                Write-Host " -> ${_}" -NoNewline
+                $sb=$sb.Append(' -> ')
             }
+            $sb=$sb.Append($_)
         }
     }
     end {
-        Write-Host ''
+        $sb.ToString()
     }
 }
 
-Find-Solution -Letters $Letters | Write-Solution
+Find-Solution -Letters $Letters -InformationAction Continue | Write-Solution
