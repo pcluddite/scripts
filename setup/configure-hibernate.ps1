@@ -38,7 +38,7 @@ function New-BtrfsVolume {
         trap {
             $PSCmdlet.ThrowTerminatingError($_)
         }
-        if ($PSCmdlet.ShouldProcess("Run 'btrfs subvolume create ${SwapVolume}'", $SwapVolume, 'brfs')) {
+        if ($PSCmdlet.ShouldProcess("Running 'btrfs subvolume create ${SwapVolume}'", "Run 'btrfs subvolume create ${SwapVolume}'?", 'btrfs subvolume create')) {
             btrfs subvolume create $SwapVolume
             if (-not $?) {
                 throw 'Failed to create volume'
