@@ -42,6 +42,79 @@ function Get-TempRmScriptPath {
     Join-Path ([Path]::GetTempPath()) "uninstall-wineico-$($Name.Replace(' ', '-')).tmp"
 }
 
+function Read-Icon {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)]
+        [string]$IconPath,
+        [Parameter(Mandatory,ValueFromRemainingArguments)]
+        [string[]]$Parameters
+    )
+    trap {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
+    $IsIcon = $false
+    $Index  = 667
+    $Height = 0
+    $Width  = 0
+    $Depth  = 0x0D
+    $Pallet = 0x0F
+    foreach($Arg in $Parameters) {
+        switch -wildcard ($arg) {
+            '--icon' {
+                $IsIcon=$true
+                break
+            }
+            '--height=*' {
+                $Height=$_.Substring($_.IndexOf('=')+1)
+                break
+            }
+            '--width=*' {
+                $Width=$_.Substring($_.IndexOf('=')+1)
+                break
+            }
+            '--bit-depth=*' {
+                $Depth=$_.Substring($_.IndexOf('=')+1)
+                break
+            }
+            '--palette-size=*' {
+                $Pallet=$_.Substring($_.IndexOf('=')+1)
+                if ($Pallet -match '[0-9]+' -and [int]$Pallet -ne 0) {
+                    $Pallet=[int]$Pallet - 1
+                }
+                break
+            }
+            '--index=*' {
+                $Index=$_.Substring($_.IndexOf('=')+1)
+                break
+            }
+            Default {
+                trap {
+                    $PSCmdlet.WriteError($_)
+                }
+                throw "unrecognized option ${_}"
+            }
+        }
+    }
+
+    if (-not $IsIcon) {
+        throw 'Parameters were not for an icon'
+    }
+
+    $Depth=([int]$Depth).ToString('X').PadLeft(2,'0')
+    $Depth="0x${Depth}"
+
+    $Pallet=([int]$Pallet).ToString('X').PadLeft(2,'0')
+    $Pallet="0x${Pallet}"
+
+    $PngPath="${OutputPath}/${Height}x${Width}/apps"
+    $PngName="${Depth}${Pallet}_$($Name.Replace(' ', '_')).${Index}.png"
+
+    if (-not (Test-Path -LiteralPath $PngPath)) {
+        New-Item -Path $PngPath -WhatIf:$false -Confirm:$false
+    }
+}
+
 $Path=[Path]::GetFullPath($Path)
 
 if (-not (Test-Path -LiteralPath $Path)) {
