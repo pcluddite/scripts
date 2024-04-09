@@ -154,7 +154,7 @@ function Write-InfoGood {
         }
     }
     process {
-        Write-Information "[   $($PSStyle.Bold)$($PSStyle.Foreground.Green)OK$($PSStyle.Reset)   ] $($MessageData | Out-String -NoNewline)"
+        Write-Information "[   $($PSStyle.Bold)$($PSStyle.Foreground.Green)OK$($PSStyle.Reset)   ] $($MessageData | Out-String -NoNewline)" -Tags:$Tags
     }
 }
 
@@ -171,7 +171,7 @@ function Write-InfoBad {
         }
     }
     process {
-        Write-Information "[ $($PSStyle.Bold)$($PSStyle.Foreground.Red)FAILED$($PSStyle.Reset) ] $($MessageData | Out-String -NoNewline)"
+        Write-Information "[ $($PSStyle.Bold)$($PSStyle.Foreground.Red)FAILED$($PSStyle.Reset) ] $($MessageData | Out-String -NoNewline)" -Tags:$Tags
     }
 }
 
@@ -188,6 +188,17 @@ function Write-InfoWarn {
         }
     }
     process {
-        Write-Information "[  $($PSStyle.Bold)$($PSStyle.Foreground.Yellow)WARN$($PSStyle.Reset)  ] $($MessageData | Out-String -NoNewline)"
+        Write-Information "[  $($PSStyle.Bold)$($PSStyle.Foreground.Yellow)WARN$($PSStyle.Reset)  ] $($MessageData | Out-String -NoNewline)" -Tags:$Tags
+    }
+}
+
+function Format-Comma {
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory,Position=0,ValueFromPipeline)]
+        [double]$Number
+    )
+    process {
+        $Number.ToString("#,##0")
     }
 }
