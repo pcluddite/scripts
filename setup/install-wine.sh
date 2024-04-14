@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [[ ! -v "${COMMONDEFS}" ]]; then
+if [[ ! -v COMMONDEFS ]]; then
     COMMONDEFS="$(dirname "$0")/../common_defs.sh"
 fi
 
