@@ -1,4 +1,8 @@
 
+$GIT_PATH=Join-Path -Path $PSScriptRoot -ChildPath '..'
+
+. (Join-Path $GIT_PATH 'modules.ps1') -Name @('string')
+
 $ErrorActionPreference = 'Stop'
 
 $Configs = @{
@@ -24,12 +28,11 @@ $Configs.Keys | % {
     $Section.Keys | % {
         $Name="${SectionName}.$_"
         $Value=$Section[$_]
-        Write-Host "[${Name}] = '${Value}': " -NoNewLine
         git config --global -- $Name $Value
         if ($?) {
-            Write-Host 'OK' -ForegroundColor Green
+            Write-InfoGood "${Name} = '${Value}'"
         } else {
-            Write-Host 'FAIL' -ForegroundColor Red
+            Write-InfoBad "${Name} = '${Value}'"
         }
     }
 }
