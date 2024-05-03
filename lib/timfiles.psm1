@@ -27,7 +27,7 @@ using namespace System.Diagnostics.CodeAnalysis;
 using namespace System.IO
 
 $MODULE_PATH=Join-Path -Path $PSScriptRoot -ChildPath '../modules.ps1' -Resolve
-. $MODULE_PATH -Name @('string')
+. $MODULE_PATH -Name @('string') -Reload
 
 if ($IsWindows) {
     Add-Type -AssemblyName Microsoft.VisualBasic
@@ -35,13 +35,13 @@ if ($IsWindows) {
 
 $INVALID_CHARS = [IO.Path]::GetInvalidFileNameChars()
 $REPLACE_CHARS = @{
-    [char]"’" ="'"
-    [char]"‘" ="'"
-    [char]"`“"="`'"
-    [char]"`”"="`'"
-    [char]"–" ="-"
-    [char]"—" ='-'
-    [char]"…" ='...'
+    [char]0x2019 = "'"
+    [char]0x2018 = "'"
+    [char]0x201C = "'"
+    [char]0x201D = "'"
+    [char]0x2013 = "-"
+    [char]0x2014 = '-'
+    [char]0x2026 ='...'
 }
 
 function Select-Text {
