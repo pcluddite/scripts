@@ -80,7 +80,7 @@ begin {
             $EscapedMachine=[Regex]::Escape($MachineName)
         }
         process {
-        Get-ChildItem -LiteralPath $Path -File | where { $_.BaseName -imatch "^(.+)\-${EscapedMachine}(\-\d+)*`$" } | % {
+            Get-ChildItem -LiteralPath $Path -File | where { $_.BaseName -imatch "^(.+)\-${EscapedMachine}(\-\d+)*`$" } | % {
                 $OriginalName=$Matches[1]
                 if ([Path]::HasExtension($_.Name)) {
                     $OriginalName="${OriginalName}$($_.Extension)"
@@ -116,7 +116,7 @@ process {
         Write-Progress -Activity 'OneDrive search status' `
             -Status "Searching '$($_.FullName.Substring($RootPath.Length % $_.FullName.Length))'" `
             -PercentComplete ([double]$i++ / $SearchPaths.Length * 100)
-        Find-Duplicate -Path $_ -MachineName $MachineName -WhatIf:$WhatIfPreference
+        Find-Duplicate -Path $_.FullName -MachineName $MachineName -WhatIf:$WhatIfPreference
     })
 
     Write-Information "$($DupeList.Length) duplicate(s) were found"
