@@ -32,6 +32,7 @@ fi
 
 alias cp='cp -i'
 alias mv='mv -i'
+alias ls='ls --group-directories-first --color=auto'
 
 alias status='journalctl -fu'
 alias ustatus='journalctl --user -fu'
