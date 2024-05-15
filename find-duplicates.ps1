@@ -17,6 +17,10 @@ param(
 $MODULE_PATH=Join-Path $PSScriptRoot 'modules.ps1'
 . $MODULE_PATH -Name @('files','string')
 
+if ($null -eq $PSBoundParameters['InformationAction']) {
+    $InformationPreference='Continue'
+}
+
 $FileMap=@{}
 
 function Find-Duplicate {
@@ -57,15 +61,19 @@ function Find-Duplicate {
 }
 
 $Path | % {
-    trap {
-        $PSCmdlet.WriteError($_)
-    }
-
     $Directory=(Get-Item $_ -ErrorAction SilentlyContinue)
     if (-not $Directory) {
-        throw [DirectoryNotFoundException]"'${_}' does not exist"
+        try {
+            throw [DirectoryNotFoundException]"'${_}' does not exist"
+        } catch {
+            $PSCmdlet.WriteError($_)
+        }
     } elseif ($Directory -isnot [DirectoryInfo]) {
-        throw [DirectoryNotFoundException]"'${_}' is not a directory"
+        try {
+            throw [DirectoryNotFoundException]"'${_}' is not a directory"
+        } catch {
+            $PSCmdlet.WriteError($_)
+        }
     } else {
         Find-Duplicate -Path $Directory -Filter $Filter -Recurse:$Recurse -Algorithm $Algorithm
     }
@@ -86,10 +94,11 @@ $FileMap.Keys | % {
     $DupeCount=$DupeCount + $_.Files.Length - 1
     $UniqueCount=$UniqueCount+1
     $TotalSize=$TotalSize+($_.Length * ($_.Files.Length - 1))
-    $_
+    return $_
 }
 
-
 if ($UniqueCount -gt 0) {
-    Write-Warning "Found $($UniqueCount.ToString("#,###")) unique file(s) with $($DupeCount.ToString("#,###")) duplicate(s) occupying an additional $(($TotalSize / 1024 / 1024).ToString("#,###.##")) MB"
+    Write-Information "Found $($UniqueCount.ToString("#,###")) unique file(s) with $($DupeCount.ToString("#,###")) duplicate(s) occupying an additional $(($TotalSize / 1024 / 1024).ToString("#,###.##")) MB"
+} else {
+    Write-Information 'No duplicates found'
 }
