@@ -28,6 +28,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$InformationPreference = 'Continue'
 
 . "${PSScriptRoot}/modules.ps1" -Name @('string', 'files')
 
@@ -93,9 +94,6 @@ function Get-Article {
         [ValidateScript({ $_ -ge $FirstPage })]
         [int]$LastPage
     )
-    trap {
-        $PSCmdlet.ThrowTerminatingError($_)
-    }
 
     if ($PSCmdlet.ParameterSetName -eq 'default') {
         $FirstPage=$Page
@@ -117,7 +115,11 @@ function Get-Article {
             $Response=Invoke-WebRequest -Uri $PageUrl
         } catch {
             $Status=$_.Exception.Response.StatusCode
-            throw "$([int]$Status) ${Status}: ${PageUrl}"
+            try {
+                throw "$([int]$Status) ${Status}: ${PageUrl}"
+            } catch {
+                $PSCmdlet.ThrowTerminatingError($_)
+            }
         }
 
         $HtmlNode=($Response.Content | ConvertFrom-HTML)
@@ -145,6 +147,7 @@ function Get-Article {
 }
 
 function Get-Episode {
+    [OutputType([bool])]
     param(
         [Parameter(Mandatory,Position=0)]
         [string]$Title,
@@ -158,17 +161,17 @@ function Get-Episode {
         [double]$RedownloadSize = 120
     )
     $Filename=Get-FileName -Title $Title
-    $OutPath=[Path]::Combine($OutPath, "$($PublishDate.Year)", "$($PublishDate.ToString('MM MMMM'))")
+    $OutPath=Join-Path $OutPath "$($PublishDate.Year)/$($PublishDate.ToString('MM MMMM'))"
     if (!(Test-Path -LiteralPath $OutPath)) {
         New-Item -ItemType Directory -Path $OutPath -ErrorAction Stop | Out-Null
     }
     $OutFile=Join-Path $OutPath $Filename
     $FileObject=(Get-Item -LiteralPath $OutFile -ErrorAction Ignore)
     if ($FileObject.Exists -and ($FileObject.Length / 1024 / 1024) -ge $RedownloadSize) {
-        Write-Information "Skipped '${Title}' because file already exists in '${OutPath}'" -Tags 'Skipped'
+        Write-Warning "Skipped '${Title}' because file already exists in '${OutPath}'"
     } else {
         if ($FileObject.Exists) {
-            Write-Information "Redownloading '${Title}' because file is less than ${RedownloadSize} MB" -Tags 'Skipped'
+            Write-Warning "Redownloading '${Title}' because file is less than ${RedownloadSize} MB"
         }
         $Uri=(Get-Mp3Uri $Url)
         Invoke-WebRequest -Uri $Uri -OutFile $OutFile -AllowInsecureRedirect -ErrorAction Inquire
