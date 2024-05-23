@@ -15,15 +15,15 @@ process {
         $script:Module=Get-Module -Name $TimName
         if ($Module) {
             if ($Reimport) {
-                Write-Verbose "Removing ${TimName} before import..."
+                $PSCmdlet.WriteVerbose("Removing ${TimName} before import...")
                 Remove-Module $TimName -ErrorAction Stop -Verbose:$false
                 $script:Module=$null
             } else {
-                Write-Verbose "Module ${TimName} is already loaded"
+                $PSCmdlet.WriteVerbose("Module ${TimName} is already loaded")
             }
         }
         if (-not $Module) {
-            Write-Verbose "Importing ${TimName}..."
+            $PSCmdlet.WriteVerbose("Importing ${TimName}...")
             $script:LibPath=Join-Path $PSScriptRoot 'lib'
             Import-Module $(Join-Path $LibPath "${TimName}.psm1") -ErrorAction Stop -Verbose:$false
         }
