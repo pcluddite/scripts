@@ -32,7 +32,7 @@ param(
     [ValidateScript({ Test-Path -LiteralPath ([Path]::GetFullPath($_)) -PathType Container })]
     [string]$OneDrivePath = $(Join-Path $HOME 'OneDrive'),
     [Parameter(Position=1)]
-    [string]$MachineName = $([Environment]::MachineName)
+    [string]$MachineName = $([Net.Dns]::GetHostName())
 )
 begin {
     $ErrorActionPreference='Stop'
