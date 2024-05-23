@@ -1,3 +1,4 @@
+[CmdletBinding()]
 param(
     [string]$SwapVolume='/swap',
     [string]$SwapFile='swapfile'
@@ -285,6 +286,14 @@ Environment=SYSTEMD_BYPASS_HIBERNATION_MEMORY_CHECK=1" > "${LogindPath}/override
 Environment=SYSTEMD_BYPASS_HIBERNATION_MEMORY_CHECK=1" > "${HibernatedPath}/override.conf" | Out-Null
 
     Write-Information "Created ${HibernatedPath}/override.conf"
+}
+
+if (-not $IsLinux) {
+    try {
+        throw 'This script can only be run on Fedora Linux'
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
 }
 
 New-SwapFile -SwapVolume $SwapVolume -SwapFile $SwapFile
