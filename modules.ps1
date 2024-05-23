@@ -10,9 +10,6 @@ param(
     [switch]$Reimport
 )
 process {
-    trap {
-        $PSCmdlet.ThrowTerminatingError($_)
-    }
     $ModuleName | % {
         $script:TimName="tim${_}"
         $script:Module=Get-Module -Name $TimName
