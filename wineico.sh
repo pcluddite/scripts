@@ -231,7 +231,7 @@ if [[ -f "$TMP_RM_SCRIPT" && "$DRY_SW" != 'Y' ]]; then
         fi
         printf '#!/bin/sh\n\n' > "$RM_SCRIPT"
         printf '#\n' >> "$RM_SCRIPT"
-        printf '# Remove icon script for %s (%s)\n#\n' "'$ICON_NAME'" $(basename $EXE_PATH) >> "$RM_SCRIPT"
+        printf '# Remove icon script for %s (%s)\n#\n' "'$ICON_NAME'" $(basename "$EXE_PATH") >> "$RM_SCRIPT"
         cat "$TMP_RM_SCRIPT" >> "$RM_SCRIPT"
         if [[ "$EXISTING_RM_SCRIPT" = "$RM_SCRIPT" ]]; then
             chmod +x "$RM_SCRIPT"
