@@ -136,7 +136,7 @@ function Get-Article {
                 Page=$Page
 
                 # decode innerText to remove &###;
-                Title=[Net.WebUtility]::HtmlDecode($TitleNode.InnerText)
+                Title=[Net.WebUtility]::HtmlDecode($TitleNode.InnerText).Trim()
 
                 # get url from href attribute
                 Url=$LinkNode.Attributes['href'].Value
