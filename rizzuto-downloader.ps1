@@ -125,22 +125,24 @@ function Get-Article {
         $HtmlNode=($Response.Content | ConvertFrom-HTML)
 
         # select article nodes for latest episodes
-        $Articles=$HtmlNode.SelectNodes("//div[@class='latest-episodes']/article")
+        $Articles=$HtmlNode.SelectNodes("//div[@class='latest-episodes']/a")
 
-        $Articles | % { $_.InnerHtml | ConvertFrom-HTML } | % {
+        $Articles | % {
             # select link node to each article from post-title class
-            $LinkNode=$_.SelectSingleNode("//*[@class='post-title']/a")
+            $LinkNode=$_
+            $InnerNode=$_.InnerHtml | ConvertFrom-HTML
+            $TitleNode=$InnerNode.SelectSingleNode("//*[@class='post-title']")
             return [PSCustomObject]@{
                 Page=$Page
 
                 # decode innerText to remove &###;
-                Title=[Net.WebUtility]::HtmlDecode($LinkNode.InnerText)
+                Title=[Net.WebUtility]::HtmlDecode($TitleNode.InnerText)
 
                 # get url from href attribute
                 Url=$LinkNode.Attributes['href'].Value
 
                 # select published date from time node
-                PublishDate=[DateTime]$_.SelectSingleNode("//time").InnerText
+                PublishDate=[DateTime]$InnerNode.SelectSingleNode("//time").InnerText
             }
         }
     }
