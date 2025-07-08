@@ -144,7 +144,7 @@ function Get-Article {
                 # select published date from time node
                 PublishDate=[DateTime]$InnerNode.SelectSingleNode("//time").InnerText
             }
-        }
+        } | Where-Object { $_.Title -notlike 'Crap On Extra*' }
     }
 }
 
