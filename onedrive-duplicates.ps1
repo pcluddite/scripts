@@ -80,7 +80,7 @@ function Find-Duplicate {
         $EscapedMachine=[Regex]::Escape($MachineName)
     }
     process {
-        Get-ChildItem -LiteralPath $Path -File | where { $_.BaseName -imatch "^(.+)\-${EscapedMachine}(\-\d+)*`$" } | % {
+        Get-ChildItem -LiteralPath $Path -File | where { $_.BaseName -imatch "^(.+)\-${EscapedMachine}(\-\d+)*`$" -or $_.BaseName -imatch "^(.+)\-${EscapedMachine}\-safeBackup\-(\d+)*`$" } | % {
             $OriginalName=$Matches[1]
             if ([Path]::HasExtension($_.Name)) {
                 $OriginalName="${OriginalName}$($_.Extension)"
