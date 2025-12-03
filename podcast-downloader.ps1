@@ -6,22 +6,22 @@
  : and associated documentation files (the "Software"), to deal in the Software without limitation
  : in the rights to use, copy, modify, merge, publish, and/ or distribute copies of the Software in
  : an educational or personal context, subject to the following conditions:
- : 
+ :
  : - The above copyright notice and this permission notice shall be included in all copies or
  :  substantial portions of the Software.
- : 
+ :
  :  Permission is granted to sell and/ or distribute copies of the Software in a commercial
  :  context, subject to the following conditions:
- : 
+ :
  : - Substantial changes: adding, removing, or modifying large parts, shall be developed in the
- :  Software. Reorganizing logic in the software does not warrant a substantial change. 
- : 
+ :  Software. Reorganizing logic in the software does not warrant a substantial change.
+ :
  : THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
  : NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
  : NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
  : DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
  : OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- : 
+ :
 #>
 using namespace System.IO
 
@@ -39,7 +39,7 @@ param(
 . "${PSScriptRoot}/modules.ps1" -Name @('files', 'string')
 
 function Get-FileName {
-    param (    
+    param (
         [Parameter(Mandatory)]
         [string]$Title,
         [Parameter(Mandatory)]
@@ -61,11 +61,11 @@ if (!(Test-Path -LiteralPath $OutPath)) {
 
 # Download and filter the RSS feed
 try {
-    $RSS = (Invoke-RestMethod $Url | where { 
+    $RSS = (Invoke-RestMethod $Url | where {
             $PubDate = [DateTime]$_.pubDate
             $_.episodeType -eq 'full' `
                 -and ($Year -le 0 -or $PubDate.Year -ge $Year) `
-                -and ($Month -le 0 -or $PubDate.Month -ge $Month) 
+                -and ($Month -le 0 -or $PubDate.Month -ge $Month)
         }
     )
     [Array]::Reverse($RSS)
