@@ -73,7 +73,7 @@ function Get-Mp3Uri() {
 
             $Script=($HtmlNode.SelectNodes("//div[@class='entry-content']/script") | % { $_.InnerText.Trim() } | where { $_ -ne '' } | select -First 1)
 
-            $endIdx=$Script.LastIndexOf(';')
+            $endIdx=$Script.LastIndexOf('};') + 1
             $startIdx=$Script.IndexOf('=') + 1
             $Json=($Script.Substring($startIdx, $endIdx - $startIdx).Trim() | ConvertFrom-Json)
             return $Json.episode.media.mp3
