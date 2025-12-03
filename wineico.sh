@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright 2025 Timothy Baxendale (pcluddite@outlook.com)
 
 set -o errexit
 
@@ -56,12 +57,12 @@ extract_png() {
     if [[ $? -ne 0 ]]; then
         ICO_DEPTH='D0'
     fi
-    
+
     printf -v ICO_PALLET "%02X" "$ICO_PALLET"
     if [[ $? -ne 0 ]]; then
         ICO_PALLET='0F'
     fi
-    
+
     local PNG_PATH="$OUT_PATH/${ICO_HEIGHT}x${ICO_WIDTH}/apps"
     local PNG_NAME="${ICO_DEPTH}${ICO_PALLET}_${ICON_NAME// /_}.${ICON_INDEX}.png"
 

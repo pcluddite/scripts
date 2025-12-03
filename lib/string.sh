@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright 2025 Timothy Baxendale (pcluddite@outlook.com)
 
 if [[ "${COMMON_STRING}" = 'Y' ]]; then
     return ${EXIT_SUCCESS}
@@ -34,7 +35,7 @@ is_integer() {
         # remove any leading sign
         INT="${INT:1}"
     fi
-    
+
     expr "${INT}" + 0 &> /dev/null && return $EXIT_SUCCESS
     [[ $? -eq 1 ]] # err status 1 means expression was 0
 }

@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright 2025 Timothy Baxendale (pcluddite@outlook.com)
 
 if [[ ! -v "${COMMONDEFS}" ]]; then
     # define COMMONDEFS if not already defined
@@ -94,7 +95,7 @@ return_error() {
                     write_error 'no value was specified for -c'
                 fi
                 ;;
-            
+
             -*)
                 write_error "unrecognized option '$1'"
                 ;;

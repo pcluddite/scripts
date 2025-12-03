@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright 2025 Timothy Baxendale (pcluddite@outlook.com)
 
 if [[ "${COMMON_ARRAY}" = 'Y' ]]; then
     return $EXIT_SUCCESS
@@ -98,7 +99,7 @@ arr_read() {
         return_error 'not a valid identifier'
     fi
     [[ $? -eq 0 ]] || return $EXIT_FAILURE
-    
+
     shift
 
     local __OPTION=
@@ -127,7 +128,7 @@ arr_read() {
     if [[ "$1" = '--' ]]; then
         shift
     elif [[ "$1" = '-'* ]]; then
-        write_error "unrecognized __OPTION '$1'" 
+        write_error "unrecognized __OPTION '$1'"
         return $EXIT_FAILURE
     fi
 

@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright 2025 Timothy Baxendale (pcluddite@outlook.com)
 
 if [[ "$COMMON_VARGS" = 'Y' ]]; then
     return $EXIT_SUCCESS
@@ -42,7 +43,7 @@ vargs_sanitize() {
                 __POSITIONAL+=("$1")
                 ;;
         esac
-        
+
         if [[ "${__NAME}" != '' ]]; then
             __SANITIZED+=("${__NAME}")
             __SANITIZED+=("${__VALUE}")
@@ -188,7 +189,7 @@ vargs() {
         esac
         shift
     done
-    
+
     while [[ $# -gt 0 ]]; do
         POSITIONAL+=("$1")
         shift

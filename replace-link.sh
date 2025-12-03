@@ -1,4 +1,6 @@
 #!/bin/sh
+# Copyright 2025 Timothy Baxendale (pcluddite@outlook.com)
+
 set -o errexit
 
 if [[ ! -v "${COMMONDEFS}" ]]; then

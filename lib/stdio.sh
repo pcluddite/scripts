@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright 2025 Timothy Baxendale (pcluddite@outlook.com)
 
 if [[ "${COMMON_STDIO}" = 'Y' ]]; then
     return $EXIT_SUCCESS

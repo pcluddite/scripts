@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright 2025 Timothy Baxendale (pcluddite@outlook.com)
 
 if [[ ! -v COMMONDEFS ]]; then
     COMMONDEFS="$(dirname "$0")/common_defs.sh"
