@@ -9,7 +9,7 @@ param(
     [Parameter(Mandatory,Position=1,ParameterSetName='downloadRange')]
     [Parameter(Mandatory,Position=1,ParameterSetName='csvRange')]
     [Alias('EndPage','Last','End','StopPage','Stop')]
-    [int]$LastPage=148,
+    [int]$LastPage=240,
     [Parameter(Position=1,ParameterSetName='download')]
     [Parameter(Position=1,ParameterSetName='csv')]
     [int]$Page=1,
