@@ -169,7 +169,13 @@ function Get-Article {
                 # select published date from time node
                 PublishDate=[DateTime]$InnerNode.SelectSingleNode("//time").InnerText
             }
-        } | Where-Object { $_.Title -notlike 'Crap On Extra*' -and $_.Title -notlike 'The Spread Zone*' }
+        } | Where-Object {
+            $_.Title -notlike 'Crap On Extra*' `
+                -and $_.Title -notlike 'Crap On Celeb*' `
+                -and $_.Title -notlike 'The Spread Zone*' `
+                -and $_.Title -notlike 'Spread Zone*' `
+                -and $_.Title -notlike '*Spread Zone'
+        }
     }
 }
 
