@@ -37,7 +37,7 @@ alias ls='ls --group-directories-first --color=auto'
 alias status='journalctl -fu'
 alias ustatus='journalctl --user -fu'
 
-alias screen='tmux attach -t'
+#alias screen='tmux attach -t'
 
 if [[ -e "${wine_c}/Program Files/Notepad++/notepad++.exe" ]]; then
     alias notepad='env WINEPREFIX="${HOME}/.wine" wine C:\\Program\ Files\\Notepad++\\notepad++.exe'
