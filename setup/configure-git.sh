@@ -11,6 +11,7 @@ fi
 
 declare -A CONFIGS=(
     [core.editor]='vim'
+    [core.autocrlf]='true'
     [user.name]='Tim Baxendale'
     [user.email]='pcluddite@outlook.com'
     [pull.rebase]='true'
